@@ -10,4 +10,4 @@ git+git://github.com/vscode-python/jedi-language-server@42823a2598d4b6369e9273c5
 # Sort Imports
 isort==5.5.2; python_version >= '3.6'
 # DS Python daemon
-python-jsonrpc-server==0.2.0
+python-jsonrpc-server==0.4.0
