@@ -1,0 +1,72 @@
+name: Issue assignment
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  auto-assign:
+    runs-on: ubuntu-latest
+    # Ignore issues created by us.
+    if: "!contains(['rchiodo', 'donjayamanne'], github.event.issue.user.login) && github.event.issue.assignees.length == 0"
+    steps:
+      - name: Get Day of Week
+        id: day
+        run: |
+          echo ::set-output name=day::$(node -p -e "new Date().getDay()")
+        shell: bash
+
+      - name: Is Event Week
+        id: week
+        run: |
+          echo ::set-output name=evenweek::$(node -p -e "var onejan = new Date(new Date().getFullYear(),0,1); Math.ceil((((new Date() - onejan) / 86400000) + onejan.getDay()+1)/7) % 2")
+        shell: bash
+
+      - name: Joyce
+        uses: pozil/auto-assign-issue@v1
+        if: contains([6, 0, 1], steps.day.outputs.day) && steps.week.outputs.evenweek == 0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          assignees: rchiodo
+
+      - name: David
+        uses: pozil/auto-assign-issue@v1
+        if: contains([6, 0, 1], steps.day.outputs.day) && steps.week.outputs.evenweek == 1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          assignees: rchiodo
+
+      - name: Rich
+        uses: pozil/auto-assign-issue@v1
+        if: contains([6, 0, 1], steps.day.outputs.day)
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          assignees: rchiodo
+
+      - name: Joyce
+        uses: pozil/auto-assign-issue@v1
+        if: contains([2], steps.day.outputs.day)
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          assignees: rchiodo
+
+      - name: David
+        uses: pozil/auto-assign-issue@v1
+        if: contains([3], steps.day.outputs.day)
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          assignees: rchiodo
+
+      - name: Don
+        uses: pozil/auto-assign-issue@v1
+        if: contains([4], steps.day.outputs.day)
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          assignees: rchiodo
+
+      - name: Ian
+        uses: pozil/auto-assign-issue@v1
+        if: contains([5], steps.day.outputs.day)
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          assignees: rchiodo
