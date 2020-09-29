@@ -1672,6 +1672,16 @@
                 ],
                 "priority": "option"
             }
+        ],
+        "notebookOutputRenderer": [
+            {
+                "id": "jupyter-ipywidget-renderer",
+                "entrypoint": "./out/ipywidgets/dist/ipywidgets.js",
+                "displayName": "Jupyter IPyWidget Renderer",
+                "mimeTypes": [
+                    "application/vnd.jupyter.widget-view+json"
+                ]
+            }
         ]
     },
     "scripts": {
