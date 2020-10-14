@@ -30,9 +30,9 @@ const { argv } = require('yargs');
 const os = require('os');
 const rmrf = require('rimraf');
 
-const isCI = process.env.TRAVIS === 'true' || process.env.TF_BUILD !== undefined;
+const isCI = process.env.TF_BUILD !== undefined || process.env.GITHUB_ACTIONS === 'true';
 
-const noop = function () { };
+const noop = function () {};
 /**
  * Hygiene works by creating cascading subsets of all our files and
  * passing them through a sequence of checks. Here are the current subsets,
@@ -132,7 +132,7 @@ gulp.task('compile-viewers', async () => {
     await buildWebPackForDevOrProduction('./build/webpack/webpack.datascience-ui-viewers.config.js');
 });
 
-gulp.task('compile-webviews', gulp.series('compile-ipywidgets', 'compile-notebooks', 'compile-viewers'));
+gulp.task('compile-webviews', gulp.parallel('compile-ipywidgets', 'compile-notebooks', 'compile-viewers'));
 
 gulp.task(
     'check-datascience-dependencies',
@@ -301,7 +301,7 @@ gulp.task('verifyBundle', async () => {
 
 gulp.task('prePublishBundle', gulp.series('webpack'));
 gulp.task('checkDependencies', gulp.series('checkNativeDependencies', 'check-datascience-dependencies'));
-gulp.task('prePublishNonBundle', gulp.series('compile', 'compile-webviews'));
+gulp.task('prePublishNonBundle', gulp.parallel('compile', 'compile-ipywidgets', 'compile-notebooks-and-viewers'));
 
 gulp.task('installPythonRequirements', async () => {
     const args = [
@@ -717,7 +717,8 @@ const hygiene = (options, done) => {
                     // Good indent.
                 } else if (/^[\t]+.*/.test(line)) {
                     console.error(
-                        `${file.relative}(${i + 1
+                        `${file.relative}(${
+                            i + 1
                         },1): Bad whitespace indentation (use 4 spaces instead of tabs or other)`
                     );
                     errorCount++;
@@ -780,8 +781,9 @@ const hygiene = (options, done) => {
                         : position.character;
 
                     // Output in format similar to tslint for the linter to pickup.
-                    const message = `ERROR: (${failure.ruleName}) ${relative(__dirname, name)}[${line + 1}, ${character + 1
-                        }]: ${failure.failure}`;
+                    const message = `ERROR: (${failure.ruleName}) ${relative(__dirname, name)}[${line + 1}, ${
+                        character + 1
+                    }]: ${failure.failure}`;
                     if (reportedLinterFailures.indexOf(message) === -1) {
                         console.error(message);
                         reportedLinterFailures.push(message);
@@ -802,7 +804,7 @@ const hygiene = (options, done) => {
         }
         // Yes this is a hack, but tslinter doesn't provide an option to prevent this.
         const oldWarn = console.warn;
-        console.warn = () => { };
+        console.warn = () => {};
         linter.failures = [];
         linter.fixes = [];
         linter.lint(file.relative, contents, configuration.results);
@@ -876,8 +878,9 @@ const hygiene = (options, done) => {
         .pipe(
             es.through(null, function () {
                 if (errorCount > 0) {
-                    const errorMessage = `Hygiene failed with errors 👎 . Check 'gulpfile.js' (completed in ${new Date().getTime() - started
-                        }ms).`;
+                    const errorMessage = `Hygiene failed with errors 👎 . Check 'gulpfile.js' (completed in ${
+                        new Date().getTime() - started
+                    }ms).`;
                     console.error(colors.red(errorMessage));
                     exitHandler(options);
                 } else {
@@ -993,7 +996,7 @@ function getModifiedFilesSync() {
         const repo = process.env.TRAVIS_REPO_SLUG || getAzureDevOpsVarValue('Build.Repository.Name');
         const originOrUpstream =
             repo.toUpperCase() === 'MICROSOFT/VSCODE-JUPYTER' ||
-                repo.toUpperCase() === 'VSCODE-JUPYTER-DATASCIENCE/VSCODE-JUPYTER'
+            repo.toUpperCase() === 'VSCODE-JUPYTER-DATASCIENCE/VSCODE-JUPYTER'
                 ? 'origin'
                 : 'upstream';
 
@@ -1069,5 +1072,5 @@ exports.hygiene = hygiene;
 
 // this allows us to run hygiene via CLI (e.g. `node gulfile.js`).
 if (require.main === module) {
-    run({ exitOnError: true, mode: 'staged' }, () => { });
+    run({ exitOnError: true, mode: 'staged' }, () => {});
 }
