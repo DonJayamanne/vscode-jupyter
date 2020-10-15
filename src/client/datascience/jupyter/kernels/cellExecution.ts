@@ -489,15 +489,16 @@ export class CellExecution {
         await chainWithPendingUpdates(this.editor, (edit) => {
             let existingOutput = [...this.cell.outputs];
 
-            // Clear if necessary
-            if (clearState.value) {
-                existingOutput = [];
-                clearState.update(false);
-            }
+                // Clear if necessary
+                if (clearState.value) {
+                    existingOutput = [];
+                    clearState.update(false);
+                }
 
-            // Append to the data (we would push here but VS code requires a recreation of the array)
-            edit.replaceCellOutput(this.cell.index, existingOutput.concat(converted));
-        });
+                // Append to the data (we would push here but VS code requires a recreation of the array)
+                edit.replaceCellOutput(this.cell.index, existingOutput.concat(converted));
+            })
+        );
     }
 
     private handleInputRequest(session: IJupyterSession, msg: KernelMessage.IStdinMessage) {
