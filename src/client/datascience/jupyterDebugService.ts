@@ -59,6 +59,9 @@ class JupyterDebugSession implements DebugSession {
     public get configuration(): DebugConfiguration {
         return this._configuration;
     }
+    public getDebugProtocolBreakpoint() {
+        return '' as any;
+    }
     public customRequest(command: string, args?: any): Thenable<any> {
         return this.customRequestHandler(command, args);
     }

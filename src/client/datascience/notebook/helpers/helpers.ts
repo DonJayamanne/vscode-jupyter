@@ -63,6 +63,9 @@ const kernelInformationForNotebooks = new WeakMap<
 >();
 
 export function getNotebookMetadata(document: NotebookDocument): nbformat.INotebookMetadata | undefined {
+    if (document.viewType !== JupyterNotebookView) {
+        return;
+    }
     // tslint:disable-next-line: no-any
     let notebookContent: Partial<nbformat.INotebookContent> = document.metadata.custom as any;
 

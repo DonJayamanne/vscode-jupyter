@@ -28,7 +28,7 @@
         "theme": "dark"
     },
     "engines": {
-        "vscode": "^1.48.0"
+        "vscode": "^1.50.0"
     },
     "keywords": [
         "jupyter",
@@ -46,6 +46,7 @@
         "Notebooks"
     ],
     "activationEvents": [
+        "*",
         "onLanguage:python",
         "onLanguage:jupyter",
         "onCommand:jupyter.viewJupyterOutput",
@@ -67,7 +68,9 @@
         "onCommand:jupyter.exportfileandoutputasnotebook",
         "onCommand:jupyter.selectJupyterInterpreter",
         "onCommand:jupyter.selectjupytercommandline",
-        "onNotebook:jupyter-notebook"
+        "onNotebook:jupyter-notebook",
+        "onView:notebookMetadataOutline",
+        "onView:notebook.metadataEditor"
     ],
     "main": "./out/client/extension",
     "contributes": {
@@ -75,7 +78,7 @@
             {
                 "command": "jupyter.execSelectionInteractive",
                 "key": "shift+enter",
-                "when": "editorTextFocus && editorLangId == python && !findInputFocussed && !replaceInputFocussed && jupyter.ownsSelection && !notebookEditorFocused"
+                "when": "editorTextFocus && !findInputFocussed && !replaceInputFocussed && jupyter.ownsSelection && !notebookEditorFocused"
             },
             {
                 "command": "jupyter.runcurrentcelladvance",
@@ -671,52 +674,52 @@
         "menus": {
             "editor/context": [
                 {
-                    "when": "editorFocus && editorLangId == python && jupyter.hascodecells && !notebookEditorFocused",
+                    "when": "editorFocus && jupyter.hascodecells && !notebookEditorFocused",
                     "command": "jupyter.runallcells",
                     "group": "Jupyter2"
                 },
                 {
-                    "when": "editorFocus && editorLangId == python && jupyter.hascodecells && !notebookEditorFocused",
+                    "when": "editorFocus && jupyter.hascodecells && !notebookEditorFocused",
                     "command": "jupyter.runcurrentcell",
                     "group": "Jupyter2"
                 },
                 {
-                    "when": "editorFocus && editorLangId == python && jupyter.hascodecells && !notebookEditorFocused",
+                    "when": "editorFocus && jupyter.hascodecells && !notebookEditorFocused",
                     "command": "jupyter.runcurrentcelladvance",
                     "group": "Jupyter2"
                 },
                 {
                     "command": "jupyter.runFileInteractive",
                     "group": "Jupyter2",
-                    "when": "editorFocus && editorLangId == python && !notebookEditorFocused"
+                    "when": "editorFocus && !notebookEditorFocused"
                 },
                 {
                     "command": "jupyter.runfromline",
                     "group": "Jupyter2",
-                    "when": "editorFocus && editorLangId == python && jupyter.ownsSelection && !notebookEditorFocused"
+                    "when": "editorFocus && jupyter.ownsSelection && !notebookEditorFocused"
                 },
                 {
                     "command": "jupyter.runtoline",
                     "group": "Jupyter2",
-                    "when": "editorFocus && editorLangId == python && jupyter.ownsSelection && !notebookEditorFocused"
+                    "when": "editorFocus && jupyter.ownsSelection && !notebookEditorFocused"
                 },
                 {
                     "command": "jupyter.execSelectionInteractive",
                     "group": "Jupyter2",
-                    "when": "editorFocus && editorLangId == python && jupyter.ownsSelection && !notebookEditorFocused"
+                    "when": "editorFocus && jupyter.ownsSelection && !notebookEditorFocused"
                 },
                 {
-                    "when": "editorFocus && editorLangId == python && resourceLangId == jupyter && !notebookEditorFocused",
+                    "when": "editorFocus && resourceLangId == jupyter && !notebookEditorFocused",
                     "command": "jupyter.importnotebook",
                     "group": "Jupyter3@1"
                 },
                 {
-                    "when": "editorFocus && editorLangId == python && jupyter.hascodecells && !notebookEditorFocused",
+                    "when": "editorFocus && jupyter.hascodecells && !notebookEditorFocused",
                     "command": "jupyter.exportfileasnotebook",
                     "group": "Jupyter3@2"
                 },
                 {
-                    "when": "editorFocus && editorLangId == python && jupyter.hascodecells && !notebookEditorFocused",
+                    "when": "editorFocus && jupyter.hascodecells && !notebookEditorFocused",
                     "command": "jupyter.exportfileandoutputasnotebook",
                     "group": "Jupyter3@3"
                 }
@@ -1671,6 +1674,30 @@
                 ]
             }
         ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "jupyter",
+                    "title": "Jupyter",
+                    "icon": "resources/jupyter.svg"
+                }
+            ]
+        },
+        "views": {
+            "jupyter": [
+                {
+                    "id": "notebookMetadataOutline",
+                    "name": "Notebook Metadata",
+                    "icon": "resources/jupyter.svg",
+                    "contextualTitle": "Notebook Metadata"
+                },
+                {
+					"type": "webview",
+					"id": "notebook.metadataEditor",
+                    "name": "Notebook Metadata"
+				}
+            ]
+        },
         "notebookProvider": [
             {
                 "viewType": "jupyter-notebook",
@@ -1856,7 +1883,7 @@
         "@types/tmp": "0.0.33",
         "@types/untildify": "^3.0.0",
         "@types/uuid": "^3.4.3",
-        "@types/vscode": "^1.47.0",
+        "@types/vscode": "^1.50.0",
         "@types/webpack-bundle-analyzer": "^2.13.0",
         "@types/winreg": "^1.2.30",
         "@types/ws": "^6.0.1",

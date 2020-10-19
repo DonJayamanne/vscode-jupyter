@@ -29,6 +29,7 @@ import { createDeferred, Deferred } from '../../common/utils/async';
 import * as localize from '../../common/utils/localize';
 import { EXTENSION_ROOT_DIR } from '../../constants';
 import { captureTelemetry, sendTelemetryEvent } from '../../telemetry';
+import { translateMonacoToKernelLanguage } from '../common';
 import { Commands, EditorContexts, Identifiers, Telemetry } from '../constants';
 import { IDataViewerFactory } from '../data-viewing/types';
 import { ExportUtil } from '../export/exportUtil';
@@ -131,7 +132,8 @@ export class InteractiveWindow extends InteractiveBase implements IInteractiveWi
         mode: InteractiveWindowMode,
         title: string | undefined,
         selector: KernelSelector,
-        private readonly extensionChecker: IPythonExtensionChecker
+        private readonly extensionChecker: IPythonExtensionChecker,
+        language?: string
     ) {
         super(
             listeners,
@@ -168,7 +170,8 @@ export class InteractiveWindow extends InteractiveBase implements IInteractiveWi
             notebookProvider,
             useCustomEditorApi,
             expService,
-            selector
+            selector,
+            language
         );
 
         // Send a telemetry event to indicate window is opening
@@ -229,8 +232,17 @@ export class InteractiveWindow extends InteractiveBase implements IInteractiveWi
         }
     }
 
-    public async addCode(code: string, file: Uri, line: number): Promise<boolean> {
-        return this.addOrDebugCode(code, file, line, false);
+    public async addCode(
+        code: string,
+        file: Uri,
+        line: number,
+        // tslint:disable-next-line: no-any
+        _?: any,
+        // tslint:disable-next-line: no-any
+        __?: any,
+        language?: string
+    ): Promise<boolean> {
+        return this.addOrDebugCode(code, file, line, false, language);
     }
 
     public exportCells() {
@@ -383,7 +395,9 @@ export class InteractiveWindow extends InteractiveBase implements IInteractiveWi
     }
 
     protected get notebookMetadata(): nbformat.INotebookMetadata | undefined {
-        return undefined;
+        return this.language
+            ? { language_info: { name: translateMonacoToKernelLanguage(this.language) }, orig_nbformat: 5 }
+            : undefined;
     }
 
     protected async updateNotebookOptions(_kernelConnection: KernelConnectionMetadata): Promise<void> {
@@ -466,7 +480,13 @@ export class InteractiveWindow extends InteractiveBase implements IInteractiveWi
         return super.ensureConnectionAndNotebook();
     }
 
-    private async addOrDebugCode(code: string, file: Uri, line: number, debug: boolean): Promise<boolean> {
+    private async addOrDebugCode(
+        code: string,
+        file: Uri,
+        line: number,
+        debug: boolean,
+        language?: string
+    ): Promise<boolean> {
         if (this.owner && !this.fs.areLocalPathsSame(file.fsPath, this.owner.fsPath)) {
             sendTelemetryEvent(Telemetry.NewFileForInteractiveWindow);
         }
@@ -492,7 +512,16 @@ export class InteractiveWindow extends InteractiveBase implements IInteractiveWi
         this.updateCwd(path.dirname(file.fsPath));
 
         // Call the internal method.
-        return this.submitCode(code, file.fsPath, line, undefined, undefined, debug ? { runByLine: false } : undefined);
+        return this.submitCode(
+            code,
+            file.fsPath,
+            line,
+            undefined,
+            undefined,
+            debug ? { runByLine: false } : undefined,
+            undefined,
+            language
+        );
     }
 
     @captureTelemetry(Telemetry.ExportNotebookInteractive, undefined, false)

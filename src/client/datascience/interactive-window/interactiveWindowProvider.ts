@@ -113,7 +113,7 @@ export class InteractiveWindowProvider implements IInteractiveWindowProvider, IA
         this.id = uuid();
     }
 
-    public async getOrCreate(resource: Resource): Promise<IInteractiveWindow> {
+    public async getOrCreate(resource: Resource, language?: string): Promise<IInteractiveWindow> {
         // Ask for a configuration change if appropriate
         const mode = await this.getInteractiveMode(resource);
 
@@ -121,7 +121,7 @@ export class InteractiveWindowProvider implements IInteractiveWindowProvider, IA
         let result = this.get(resource, mode) as InteractiveWindow;
         if (!result) {
             // No match. Create a new item.
-            result = this.create(resource, mode);
+            result = this.create(resource, mode, language);
 
             // Wait for monaco ready (it's not really useable until it has a language)
             const readyPromise = createDeferred();
@@ -158,7 +158,7 @@ export class InteractiveWindowProvider implements IInteractiveWindowProvider, IA
         }
     }
 
-    protected create(resource: Resource, mode: InteractiveWindowMode): InteractiveWindow {
+    protected create(resource: Resource, mode: InteractiveWindowMode, language?: string): InteractiveWindow {
         const title =
             mode === 'multiple' || (mode === 'perFile' && !resource)
                 ? localize.DataScience.interactiveWindowTitleFormat().format(`#${this._windows.length + 1}`)
@@ -198,7 +198,8 @@ export class InteractiveWindowProvider implements IInteractiveWindowProvider, IA
             mode,
             title,
             this.serviceContainer.get<KernelSelector>(KernelSelector),
-            this.serviceContainer.get<IPythonExtensionChecker>(IPythonExtensionChecker)
+            this.serviceContainer.get<IPythonExtensionChecker>(IPythonExtensionChecker),
+            language
         );
         this._windows.push(result);
 

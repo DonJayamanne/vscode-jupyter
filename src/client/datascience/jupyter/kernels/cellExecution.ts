@@ -340,9 +340,19 @@ export class CellExecution {
 
     private async executeCodeCell(code: string, session: IJupyterSession, loggers: INotebookExecutionLogger[]) {
         // Generate metadata from our cell (some kernels expect this.)
+        // const metadata = {
+        //     ...(this.cell.metadata?.custom?.metadata || {}),
+        //     ...{ cellId: this.cell.uri.toString() }
+        // };
         const metadata = {
-            ...this.cell.metadata,
-            ...{ cellId: this.cell.uri.toString() }
+            ...(this.cell.metadata?.custom?.metadata || {}),
+            ...{ cellId: this.cell.uri.toString() },
+            sos: {
+                cell_id: 'b555deac5c284e6c80ba10e9fe8343f5',
+                cell_kernel: (this.cell.metadata?.custom?.metadata || {}).kernel,
+                path: 'otherLang/sosNb.ipynb',
+                use_panel: true
+            }
         };
 
         // Skip if no code to execute
@@ -353,11 +363,14 @@ export class CellExecution {
         const request = session.requestExecute(
             {
                 code,
+                // sos: metadata.sos,
                 silent: false,
                 stop_on_error: false,
                 allow_stdin: true,
-                store_history: true // Silent actually means don't output anything. Store_history is what affects execution_count
-            },
+                store_history: true, // Silent actually means don't output anything. Store_history is what affects execution_count
+                user_expressions: {}
+                // tslint:disable-next-line: no-any
+            } as any,
             false,
             metadata
         );

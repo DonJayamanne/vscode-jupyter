@@ -81,7 +81,7 @@ export interface IJupyterConnection extends Disposable {
     getAuthHeader?(): any; // Snould be a json object
 }
 
-export type INotebookProviderConnection = IRawConnection | IJupyterConnection;
+export type INotebookProviderConnection = (IRawConnection | IJupyterConnection) & { language?: string };
 
 export enum InterruptResult {
     Success = 0,
@@ -155,7 +155,8 @@ export interface IRawNotebookProvider extends IAsyncDisposable {
         resource: Resource,
         disableUI?: boolean,
         notebookMetadata?: nbformat.INotebookMetadata,
-        cancelToken?: CancellationToken
+        cancelToken?: CancellationToken,
+        language?: string
     ): Promise<INotebook>;
     getNotebook(identity: Uri, token?: CancellationToken): Promise<INotebook | undefined>;
 }
@@ -246,6 +247,7 @@ export type ConnectNotebookProviderOptions = {
     disableUI?: boolean;
     localOnly?: boolean;
     token?: CancellationToken;
+    language?: string;
     onConnectionMade?(): void; // Optional callback for when the first connection is made
 };
 
@@ -464,7 +466,7 @@ export interface IInteractiveWindowProvider {
      * Gets or creates a new interactive window and associates it with the owner. If no owner, marks as a non associated.
      * @param owner file that started this interactive window
      */
-    getOrCreate(owner: Resource): Promise<IInteractiveWindow>;
+    getOrCreate(owner: Resource, language?: string): Promise<IInteractiveWindow>;
     /**
      * Synchronizes with the other peers in a live share connection to make sure it has the same window open
      * @param window window on this side
@@ -522,7 +524,14 @@ export interface IInteractiveWindow extends IInteractiveBase {
     readonly identity: Uri;
     readonly title: string;
     closed: Event<IInteractiveWindow>;
-    addCode(code: string, file: Uri, line: number, editor?: TextEditor, runningStopWatch?: StopWatch): Promise<boolean>;
+    addCode(
+        code: string,
+        file: Uri,
+        line: number,
+        editor?: TextEditor,
+        runningStopWatch?: StopWatch,
+        language?: string
+    ): Promise<boolean>;
     addMessage(message: string): Promise<void>;
     debugCode(
         code: string,
@@ -646,6 +655,7 @@ export interface IPostOffice {
 // Wraps the vscode CodeLensProvider base class
 export const IDataScienceCodeLensProvider = Symbol('IDataScienceCodeLensProvider');
 export interface IDataScienceCodeLensProvider extends CodeLensProvider {
+    registerProvider(provider: IInteractiveWindowExecutionCodeCellProvider): void;
     getCodeWatcher(document: TextDocument): ICodeWatcher | undefined;
 }
 
@@ -654,7 +664,7 @@ export const ICodeWatcher = Symbol('ICodeWatcher');
 export interface ICodeWatcher {
     readonly uri: Uri | undefined;
     codeLensUpdated: Event<void>;
-    setDocument(document: TextDocument): void;
+    setDocument(document: TextDocument, provider?: IInteractiveWindowExecutionCodeCellProvider): void;
     getVersion(): number;
     getCodeLenses(): CodeLens[];
     getCachedSettings(): IJupyterSettings | undefined;
@@ -692,7 +702,14 @@ export interface ICodeWatcher {
 export const ICodeLensFactory = Symbol('ICodeLensFactory');
 export interface ICodeLensFactory {
     updateRequired: Event<void>;
-    createCodeLenses(document: TextDocument): CodeLens[];
+    createCodeLenses(document: TextDocument, provider?: IInteractiveWindowExecutionCodeCellProvider): CodeLens[];
+    getCellRanges(document: TextDocument, provider?: IInteractiveWindowExecutionCodeCellProvider): ICellRange[];
+}
+export const IInteractiveWindowExecutionCodeLensProvider = Symbol('IInteractiveWindowExecutionCodeLensProvider');
+export interface IInteractiveWindowExecutionCodeCellProvider {
+    readonly language: string;
+    readonly cellMarker: string; // '# %%'
+    onDidCodeCells?: Event<void>;
     getCellRanges(document: TextDocument): ICellRange[];
 }
 
@@ -723,7 +740,7 @@ export interface ICell {
 export interface ICellRange {
     range: Range;
     title: string;
-    cell_type: string;
+    cell_type: 'code' | 'markdown' | 'raw';
 }
 
 export interface IInteractiveWindowInfo {
@@ -1153,6 +1170,7 @@ export type GetNotebookOptions = {
     disableUI?: boolean;
     metadata?: nbformat.INotebookMetadata & { id?: string };
     token?: CancellationToken;
+    language?: string;
 };
 
 export const INotebookProvider = Symbol('INotebookProvider');

@@ -121,10 +121,11 @@ export class RawNotebookProviderWrapper implements IRawNotebookProvider, ILiveSh
         resource: Resource,
         disableUI: boolean,
         notebookMetadata: nbformat.INotebookMetadata,
-        cancelToken: CancellationToken
+        cancelToken: CancellationToken,
+        language?: string
     ): Promise<INotebook> {
         const notebookProvider = await this.serverFactory.get();
-        return notebookProvider.createNotebook(identity, resource, disableUI, notebookMetadata, cancelToken);
+        return notebookProvider.createNotebook(identity, resource, disableUI, notebookMetadata, cancelToken, language);
     }
 
     public async getNotebook(identity: Uri): Promise<INotebook | undefined> {

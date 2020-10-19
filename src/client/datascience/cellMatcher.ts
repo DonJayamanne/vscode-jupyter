@@ -43,7 +43,7 @@ export class CellMatcher {
         return this.codeMatchRegEx.test(code) || code.trim() === this.defaultCellMarker;
     }
 
-    public getCellType(code: string): string {
+    public getCellType(code: string): 'markdown' | 'code' {
         return this.isMarkdown(code) ? 'markdown' : 'code';
     }
 

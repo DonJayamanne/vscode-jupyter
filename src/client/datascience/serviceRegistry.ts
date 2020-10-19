@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 'use strict';
 import { IExtensionSingleActivationService } from '../activation/types';
+import { NotebookMetadataEditor } from '../activityBar/metadata/metadataHtmlEditor';
+import { NotebookMetadataTreeViewProvider } from '../activityBar/metadata/metadataTreeProvider';
 import { UseCustomEditorApi, UseVSCodeNotebookEditorApi } from '../common/constants';
 import { FileSystemPathUtils } from '../common/platform/fs-paths';
 import { IFileSystemPathUtils } from '../common/platform/types';
@@ -316,6 +318,8 @@ export function registerTypes(serviceManager: IServiceManager, useVSCodeNotebook
     serviceManager.addSingleton<ITrustService>(ITrustService, TrustService);
     serviceManager.addSingleton<IFileSystemPathUtils>(IFileSystemPathUtils, FileSystemPathUtils);
     serviceManager.addSingleton<INotebookExtensibility>(INotebookExtensibility, NotebookExtensibility);
+    serviceManager.addSingleton<IExtensionSingleActivationService>(IExtensionSingleActivationService, NotebookMetadataTreeViewProvider);
+    serviceManager.addSingleton<IExtensionSingleActivationService>(IExtensionSingleActivationService, NotebookMetadataEditor);
 
     registerGatherTypes(serviceManager);
     registerNotebookTypes(serviceManager);

@@ -15,6 +15,14 @@
             "path": "../vscode-notebook-renderers"
         },
         {
+            "name": "vscode-notebook-cell-tags",
+            "path": "../vscode-notebook-cell-tags"
+        },
+        {
+            "name": "vscode-notebook-slide-show",
+            "path": "../vscode-notebook-slide-show"
+        },
+        {
             "name": "vscode-python",
             "path": "../vscode-python"
         }
@@ -103,6 +111,32 @@
                     "!${workspaceFolder:vscode-jupyter}/**/node_modules**/*",
                     "${workspaceFolder:vscode-notebook-renderers}/out/**/*.js",
                     "!${workspaceFolder:vscode-notebook-renderers}/**/node_modules**/*"
+                ],
+                "skipFiles": [
+                    "<node_internals>/**"
+                ]
+            },
+            {
+                "type": "extensionHost",
+                "request": "launch",
+                "name": "Jupyter + API",
+                "args": [
+                    "--enable-proposed-api",
+                    "--enable-proposed-api donjayamanne.vscode-notebook-cell-tags",
+                    "--enable-proposed-api donjayamanne.vscode-notebook-slide-show",
+                    "--extensionDevelopmentPath=${workspaceFolder:vscode-jupyter}",
+                    "--extensionDevelopmentPath=${workspaceFolder:vscode-notebook-cell-tags}",
+                    "--extensionDevelopmentPath=${workspaceFolder:vscode-notebook-slide-show}"
+                ],
+                "stopOnEntry": false,
+                "sourceMaps": true,
+                "outFiles": [
+                    "${workspaceFolder:vscode-jupyter}/out/**/*.js",
+                    "!${workspaceFolder:vscode-jupyter}/**/node_modules**/*",
+                    "${workspaceFolder:vscode-notebook-cell-tags}/out/**/*.js",
+                    "!${workspaceFolder:vscode-notebook-cell-tags}/**/node_modules**/*",
+                    "${workspaceFolder:vscode-notebook-slide-show}/out/**/*.js",
+                    "!${workspaceFolder:vscode-notebook-slide-show}/**/node_modules**/*"
                 ],
                 "skipFiles": [
                     "<node_internals>/**"
