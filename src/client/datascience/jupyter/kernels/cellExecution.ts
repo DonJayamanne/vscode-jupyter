@@ -347,12 +347,12 @@ export class CellExecution {
         const metadata = {
             ...(this.cell.metadata?.custom?.metadata || {}),
             ...{ cellId: this.cell.uri.toString() },
-            sos: {
-                cell_id: 'b555deac5c284e6c80ba10e9fe8343f5',
-                cell_kernel: (this.cell.metadata?.custom?.metadata || {}).kernel,
-                path: 'otherLang/sosNb.ipynb',
-                use_panel: true
-            }
+            // sos: {
+            //     cell_id: this.cell.uri.toString(),
+            //     cell_kernel: (this.cell.metadata?.custom?.metadata || {}).kernel,
+            //     path: 'otherLang/sosNb.ipynb',
+            //     use_panel: false
+            // }
         };
 
         // Skip if no code to execute
