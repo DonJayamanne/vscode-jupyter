@@ -177,7 +177,8 @@ export abstract class InteractiveBase extends WebviewPanelHost<IInteractiveWindo
         useCustomEditorApi: boolean,
         expService: IExperimentService,
         private selector: KernelSelector,
-        private serverStorage: IJupyterServerUriStorage
+        private serverStorage: IJupyterServerUriStorage,
+        protected readonly language?: string
     ) {
         super(
             configuration,
@@ -609,7 +610,8 @@ export abstract class InteractiveBase extends WebviewPanelHost<IInteractiveWindo
         id?: string,
         data?: nbformat.ICodeCell | nbformat.IRawCell | nbformat.IMarkdownCell,
         debugInfo?: { runByLine: boolean; hashFileName?: string },
-        cancelToken?: CancellationToken
+        cancelToken?: CancellationToken,
+        language?: string
     ): Promise<boolean> {
         traceInfo(`Submitting code for ${this.id}`);
         const stopWatch =
@@ -647,7 +649,7 @@ export abstract class InteractiveBase extends WebviewPanelHost<IInteractiveWindo
 
         try {
             // Make sure we're loaded first.
-            await this.ensureConnectionAndNotebook();
+            await this.ensureConnectionAndNotebook(language);
 
             // Make sure we set the dark setting
             await this.ensureDarkSet();
@@ -855,7 +857,7 @@ export abstract class InteractiveBase extends WebviewPanelHost<IInteractiveWindo
         }
     }
 
-    protected async ensureConnectionAndNotebook(): Promise<void> {
+    protected async ensureConnectionAndNotebook(language?: string): Promise<void> {
         // Start over if we somehow end up with a disposed notebook.
         if (this._notebook && this._notebook.disposed) {
             this._notebook = undefined;
@@ -863,7 +865,7 @@ export abstract class InteractiveBase extends WebviewPanelHost<IInteractiveWindo
             this.connectionAndNotebookPromise = undefined;
         }
         if (!this.connectionAndNotebookPromise) {
-            this.connectionAndNotebookPromise = this.ensureConnectionAndNotebookImpl();
+            this.connectionAndNotebookPromise = this.ensureConnectionAndNotebookImpl(language);
         }
         try {
             await this.connectionAndNotebookPromise;
@@ -893,7 +895,7 @@ export abstract class InteractiveBase extends WebviewPanelHost<IInteractiveWindo
 
     protected async createNotebookIfProviderConnectionExists(): Promise<void> {
         // Check to see if we are already connected to our provider
-        const providerConnection = await this.notebookProvider.connect({ getOnly: true });
+        const providerConnection = await this.notebookProvider.connect({ getOnly: true, language: this.language });
 
         if (providerConnection) {
             try {
@@ -971,11 +973,15 @@ export abstract class InteractiveBase extends WebviewPanelHost<IInteractiveWindo
         return (cell as any) as ICell;
     }
 
-    private async ensureConnectionAndNotebookImpl(): Promise<void> {
+    private async ensureConnectionAndNotebookImpl(language?: string): Promise<void> {
         // Make sure we're loaded first.
         try {
             traceInfo('Waiting for jupyter server and web panel ...');
-            const serverConnection = await this.notebookProvider.connect({ getOnly: false, disableUI: false });
+            const serverConnection = await this.notebookProvider.connect({
+                getOnly: false,
+                disableUI: false,
+                language
+            });
             if (serverConnection) {
                 await this.ensureNotebook(serverConnection);
             }
@@ -1169,7 +1175,8 @@ export abstract class InteractiveBase extends WebviewPanelHost<IInteractiveWindo
                 notebook = await this.notebookProvider.getOrCreateNotebook({
                     identity: this.notebookIdentity.resource,
                     resource: this.owningResource,
-                    metadata: this.notebookMetadata
+                    metadata: this.notebookMetadata,
+                    language: serverConnection.language
                 });
                 if (notebook) {
                     const executionActivation = { ...this.notebookIdentity, owningResource: this.owningResource };
@@ -1235,7 +1242,7 @@ export abstract class InteractiveBase extends WebviewPanelHost<IInteractiveWindo
                 jupyterServerStatus: ServerStatus.Busy,
                 serverName: await this.getServerDisplayName(serverConnection),
                 kernelName: '',
-                language: PYTHON_LANGUAGE
+                language: serverConnection.language || PYTHON_LANGUAGE
             }).ignoreErrors();
 
             this._notebook = await this.createNotebook(serverConnection);
@@ -1374,7 +1381,7 @@ export abstract class InteractiveBase extends WebviewPanelHost<IInteractiveWindo
     private generateSysInfoCell = async (reason: SysInfoReason): Promise<ICell | undefined> => {
         // Execute the code 'import sys\r\nsys.version' and 'import sys\r\nsys.executable' to get our
         // version and executable
-        if (this._notebook) {
+        if (this._notebook && (!this.language || this.language === PYTHON_LANGUAGE)) {
             const message = await this.generateSysInfoMessage(reason);
 
             // The server handles getting this data.

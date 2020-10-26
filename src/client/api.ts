@@ -6,11 +6,16 @@
 import { Disposable, Event, Uri } from 'vscode';
 import { NotebookCell, NotebookCellRunState } from '../../types/vscode-proposed';
 import { IPythonApiProvider, PythonApi } from './api/types';
+import { IWorkspaceService } from './common/application/types';
 import { isTestExecution } from './common/constants';
 import { traceError } from './common/logger';
+import { ExecutionResult, IPythonExecutionFactory } from './common/process/types';
 import { IDataViewerDataProvider, IDataViewerFactory } from './datascience/data-viewing/types';
 import { KernelStateEventArgs } from './datascience/notebookExtensibility';
 import {
+    IDataScienceCodeLensProvider,
+    IInteractiveWindowExecutionCodeCellProvider,
+    IJupyterSubCommandExecutionService,
     IJupyterUriProvider,
     IJupyterUriProviderRegistration,
     INotebookExtensibility,
@@ -49,6 +54,14 @@ export interface IExtensionApi {
      */
     registerRemoteServerProvider(serverProvider: IJupyterUriProvider): void;
     registerPythonApi(pythonApi: PythonApi): void;
+    /**
+     * Execute commands against Jupyter, such as `nbconvert`, `notebook`, etc.
+     * If executing nbconvert such as `python -m jupyter notebook --to FORMAT notebook.ipynb`
+     * Then the args = ['nbconvert', '--to', 'FORMAT', 'notebook.ipynb']
+     * Other examples include `python -m jupyter kernelspec list`, can be done via args = ['kernelspec', 'list']
+     */
+    executeJupyterCommand(options: { args: string[]; resource?: Uri }): Promise<ExecutionResult<string>>;
+    registerInteractiveWindowCellProvider(cellProvider: IInteractiveWindowExecutionCodeCellProvider): void;
 }
 
 export function buildApi(
@@ -83,7 +96,30 @@ export function buildApi(
             container.registerProvider(picker);
         },
         onKernelStateChange: notebookExtensibility.onKernelStateChange.bind(notebookExtensibility),
-        registerCellToolbarButton: webviewExtensibility.registerCellToolbarButton.bind(webviewExtensibility)
+        registerCellToolbarButton: webviewExtensibility.registerCellToolbarButton.bind(webviewExtensibility),
+        executeJupyterCommand: async (options: { args: string[]; resource?: Uri }) => {
+            const jupyterExec = serviceContainer.get<IJupyterSubCommandExecutionService>(
+                IJupyterSubCommandExecutionService
+            );
+            const pythonExec = serviceContainer.get<IPythonExecutionFactory>(IPythonExecutionFactory);
+            const interpreter = await jupyterExec.getSelectedInterpreter();
+            if (!interpreter) {
+                throw new Error('Not selected');
+            }
+            const execService = await pythonExec.createActivatedEnvironment({
+                interpreter,
+                bypassCondaExecution: true,
+                allowEnvironmentFetchExceptions: true
+            });
+            const workspaceSvc = serviceContainer.get<IWorkspaceService>(IWorkspaceService);
+            const workspace = workspaceSvc.getWorkspaceFolder(options.resource);
+            const cwd = workspace?.uri.fsPath;
+            return execService.execModule('jupyter', options.args, { cwd });
+        },
+        registerInteractiveWindowCellProvider: (provider: IInteractiveWindowExecutionCodeCellProvider) => {
+            const codeLensProvider = serviceContainer.get<IDataScienceCodeLensProvider>(IDataScienceCodeLensProvider);
+            codeLensProvider.registerProvider(provider);
+        }
     };
 
     // In test environment return the DI Container.

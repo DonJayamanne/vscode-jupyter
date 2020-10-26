@@ -7,6 +7,7 @@ import * as nodeFetch from 'node-fetch';
 import { URLSearchParams } from 'url';
 import { ConfigurationTarget } from 'vscode';
 import { IApplicationShell } from '../../common/application/types';
+import { traceError } from '../../common/logger';
 import { IAsyncDisposableRegistry, IConfigurationService } from '../../common/types';
 import * as localize from '../../common/utils/localize';
 import { IMultiStepInput, IMultiStepInputFactory } from '../../common/utils/multiStepInput';
@@ -220,7 +221,7 @@ export class JupyterPasswordConnect implements IJupyterPasswordConnect {
         // First determine if we need a password. A request for the base URL with /tree? should return a 302 if we do.
         if (await this.needPassword(url)) {
             // Get password first
-            let userPassword = await this.getUserPassword();
+            let userPassword = await this.getUserPassword(url);
 
             if (userPassword) {
                 xsrfCookie = await this.getXSRFToken(url);
@@ -307,9 +308,9 @@ export class JupyterPasswordConnect implements IJupyterPasswordConnect {
         });
     }
 
-    private async getUserPassword(): Promise<string | undefined> {
+    private async getUserPassword(url?: string): Promise<string | undefined> {
         return this.appShell.showInputBox({
-            prompt: localize.DataScience.jupyterSelectPasswordPrompt(),
+            prompt: `${localize.DataScience.jupyterSelectPasswordPrompt()} to connect to remote Jupyter Server ${url}`,
             ignoreFocusOut: true,
             password: true
         });
@@ -392,13 +393,18 @@ export class JupyterPasswordConnect implements IJupyterPasswordConnect {
 
         // Otherwise request hub/api. This should return the json with the hub version
         // if this is a hub url
-        const response = await this.makeRequest(`${url}hub/api`, {
-            method: 'get',
-            redirect: 'manual',
-            headers: { Connection: 'keep-alive' }
-        });
+        try {
+            const response = await this.makeRequest(`${url}hub/api`, {
+                method: 'get',
+                redirect: 'manual',
+                headers: { Connection: 'keep-alive' }
+            });
 
-        return response.status === 200;
+            return response.status === 200;
+        } catch (ex) {
+            traceError('Failed', ex);
+            return false;
+        }
     }
 
     // Jupyter uses a session cookie to validate so by hitting the login page with the password we can get that cookie and use it ourselves

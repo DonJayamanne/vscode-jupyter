@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 'use strict';
 import type { TextDocument, Uri } from 'vscode';
+import { RemoteFileSystem } from '../../remote/auth/fileSystem';
 import { NotebookCellScheme } from '../constants';
 import { InterpreterUri } from '../installer/types';
 import { IAsyncDisposable, IDisposable, Resource } from '../types';
@@ -136,5 +137,17 @@ export function isNotebookCell(documentOrUri: TextDocument | Uri): boolean {
 }
 
 export function isUntitledFile(file?: Uri) {
-    return file?.scheme === 'untitled';
+    if (!file) {
+        return false;
+    }
+    if (file?.scheme === 'untitled') {
+        return true;
+    }
+    if (RemoteFileSystem.RegisteredFileSystems.length === 0) {
+        return false;
+    }
+    if (RemoteFileSystem.RegisteredFileSystems.some((item) => item.scheme === file.scheme)) {
+        return file.path.toLowerCase().includes('untitled');
+    }
+    return false;
 }

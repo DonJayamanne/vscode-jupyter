@@ -32,6 +32,7 @@ import {
     ICodeLensFactory,
     ICodeWatcher,
     IDataScienceErrorHandler,
+    IInteractiveWindowExecutionCodeCellProvider,
     IInteractiveWindowProvider
 } from '../types';
 
@@ -56,6 +57,13 @@ function getIndex(index: number, length: number): number {
 
 @injectable()
 export class CodeWatcher implements ICodeWatcher {
+    public get codeLensUpdated(): Event<void> {
+        return this.codeLensUpdatedEvent.event;
+    }
+
+    public get uri() {
+        return this.document?.uri;
+    }
     private static sentExecuteCellTelemetry: boolean = false;
     private document?: TextDocument;
     private version: number = -1;
@@ -65,6 +73,7 @@ export class CodeWatcher implements ICodeWatcher {
     private codeLensUpdatedEvent: EventEmitter<void> = new EventEmitter<void>();
     private updateRequiredDisposable: IDisposable | undefined;
     private closeDocumentDisposable: IDisposable | undefined;
+    private providers = new Map<string, IInteractiveWindowExecutionCodeCellProvider | undefined>();
 
     constructor(
         @inject(IInteractiveWindowProvider) private interactiveWindowProvider: IInteractiveWindowProvider,
@@ -75,10 +84,9 @@ export class CodeWatcher implements ICodeWatcher {
         @inject(IDataScienceErrorHandler) protected dataScienceErrorHandler: IDataScienceErrorHandler,
         @inject(ICodeLensFactory) private codeLensFactory: ICodeLensFactory
     ) {}
-
-    public setDocument(document: TextDocument) {
+    public setDocument(document: TextDocument, provider?: IInteractiveWindowExecutionCodeCellProvider) {
         this.document = document;
-
+        this.providers.set(document.languageId, provider);
         // Cache the version, we don't want to pull an old version if the document is updated
         this.version = document.version;
 
@@ -86,22 +94,14 @@ export class CodeWatcher implements ICodeWatcher {
         this.cachedSettings = JSON.parse(JSON.stringify(this.configService.getSettings(document.uri)));
 
         // Use the factory to generate our new code lenses.
-        this.codeLenses = this.codeLensFactory.createCodeLenses(document);
-        this.cells = this.codeLensFactory.getCellRanges(document);
+        this.codeLenses = this.codeLensFactory.createCodeLenses(document, provider);
+        this.cells = this.codeLensFactory.getCellRanges(document, provider);
 
         // Listen for changes
         this.updateRequiredDisposable = this.codeLensFactory.updateRequired(this.onCodeLensFactoryUpdated.bind(this));
 
         // Make sure to stop listening for changes when this document closes.
         this.closeDocumentDisposable = this.documentManager.onDidCloseTextDocument(this.onDocumentClosed.bind(this));
-    }
-
-    public get codeLensUpdated(): Event<void> {
-        return this.codeLensUpdatedEvent.event;
-    }
-
-    public get uri() {
-        return this.document?.uri;
     }
 
     public getVersion() {
@@ -931,7 +931,9 @@ export class CodeWatcher implements ICodeWatcher {
         //
         // ```
         //
-        const cellDelineator = this.getDefaultCellMarker(editor.document.uri);
+        const cellDelineator = this.providers.get(editor.document.languageId)
+            ? this.providers.get(editor.document.languageId)?.cellMarker
+            : this.getDefaultCellMarker(editor.document.uri);
         let newCell = `${cellDelineator}\n\n`;
         if (line >= editor.document.lineCount) {
             newCell = `\n${cellDelineator}\n`;
@@ -974,16 +976,17 @@ export class CodeWatcher implements ICodeWatcher {
         file: Uri,
         line: number,
         editor?: TextEditor,
-        debug?: boolean
+        debug?: boolean,
+        language?: string
     ): Promise<boolean> {
         let result = false;
         try {
             const stopWatch = new StopWatch();
-            const activeInteractiveWindow = await this.interactiveWindowProvider.getOrCreate(file);
+            const activeInteractiveWindow = await this.interactiveWindowProvider.getOrCreate(file, language);
             if (debug) {
                 result = await activeInteractiveWindow.debugCode(code, file, line, editor);
             } else {
-                result = await activeInteractiveWindow.addCode(code, file, line, editor);
+                result = await activeInteractiveWindow.addCode(code, file, line, editor, undefined, language);
             }
             this.sendPerceivedCellExecute(stopWatch);
         } catch (err) {
@@ -1044,7 +1047,8 @@ export class CodeWatcher implements ICodeWatcher {
                     this.document.uri,
                     currentRunCellLens.range.start.line,
                     this.documentManager.activeTextEditor,
-                    debug
+                    debug,
+                    this.document?.languageId
                 );
             }
         }

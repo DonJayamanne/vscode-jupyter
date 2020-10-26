@@ -5,6 +5,7 @@ import { inject, injectable } from 'inversify';
 import { CodeLens, Command, Event, EventEmitter, Range, TextDocument, Uri } from 'vscode';
 
 import { IDocumentManager } from '../../common/application/types';
+import { PYTHON_LANGUAGE } from '../../common/constants';
 import { traceWarning } from '../../common/logger';
 import { IFileSystem } from '../../common/platform/types';
 
@@ -20,6 +21,7 @@ import {
     ICellRange,
     ICodeLensFactory,
     IFileHashes,
+    IInteractiveWindowExecutionCodeCellProvider,
     IInteractiveWindowListener,
     INotebook,
     INotebookProvider
@@ -117,17 +119,23 @@ export class CodeLensFactory implements ICodeLensFactory, IInteractiveWindowList
         return this.updateEvent.event;
     }
 
-    public createCodeLenses(document: TextDocument): CodeLens[] {
-        const cache = this.getCodeLensCacheData(document);
+    public createCodeLenses(
+        document: TextDocument,
+        provider?: IInteractiveWindowExecutionCodeCellProvider
+    ): CodeLens[] {
+        const cache = this.getCodeLensCacheData(document, provider);
         return [...cache.documentLenses, ...cache.gotoCellLens];
     }
 
-    public getCellRanges(document: TextDocument): ICellRange[] {
-        const cache = this.getCodeLensCacheData(document);
+    public getCellRanges(document: TextDocument, provider?: IInteractiveWindowExecutionCodeCellProvider): ICellRange[] {
+        const cache = this.getCodeLensCacheData(document, provider);
         return cache.cellRanges;
     }
 
-    private getCodeLensCacheData(document: TextDocument): CodeLensCacheData {
+    private getCodeLensCacheData(
+        document: TextDocument,
+        provider?: IInteractiveWindowExecutionCodeCellProvider
+    ): CodeLensCacheData {
         // See if we have a cached version of the code lenses for this document
         const key = document.fileName.toLocaleLowerCase();
         let cache = this.codeLensCache.get(key);
@@ -148,7 +156,9 @@ export class CodeLensFactory implements ICodeLensFactory, IInteractiveWindowList
 
         // If the document version doesn't match, our cell ranges are out of date
         if (cache.cachedDocumentVersion !== document.version) {
-            cache.cellRanges = generateCellRangesFromDocument(document, this.configService.getSettings(document.uri));
+            cache.cellRanges = provider
+                ? provider.getCellRanges(document)
+                : generateCellRangesFromDocument(document, this.configService.getSettings(document.uri));
 
             // Because we have all new ranges, we need to recompute ALL of our code lenses.
             cache.documentLenses = [];
@@ -345,14 +355,22 @@ export class CodeLensFactory implements ICodeLensFactory, IInteractiveWindowList
                     localize.DataScience.addCellBelowCommandTitle(),
                     [document.uri, range.start.line]
                 );
-            case Commands.DebugCurrentCellPalette:
+            case Commands.DebugCurrentCellPalette: {
+                if (document.languageId !== PYTHON_LANGUAGE) {
+                    return;
+                }
                 return this.generateCodeLens(
                     range,
                     Commands.DebugCurrentCellPalette,
                     localize.DataScience.debugCellCommandTitle()
                 );
+            }
 
-            case Commands.DebugCell:
+            case Commands.DebugCell: {
+                if (document.languageId !== PYTHON_LANGUAGE) {
+                    return;
+                }
+
                 // If it's not a code cell (e.g. markdown), don't add the "Debug cell" action.
                 if (cell_type !== 'code') {
                     break;
@@ -364,6 +382,7 @@ export class CodeLensFactory implements ICodeLensFactory, IInteractiveWindowList
                     range.end.line,
                     range.end.character
                 ]);
+            }
 
             case Commands.DebugStepOver:
                 // Only code cells get debug actions

@@ -5,16 +5,21 @@ import * as nodeFetch from 'node-fetch';
 // Function for creating node Request object that prevents jupyterlab services from writing its own
 // authorization header.
 // tslint:disable: no-any
-export function createAuthorizingRequest(getAuthHeader: () => any) {
+export function createAuthorizingRequest(getAuthHeader?: () => any, cookieString?: string) {
     class AuthorizingRequest extends nodeFetch.Request {
         constructor(input: nodeFetch.RequestInfo, init?: nodeFetch.RequestInit) {
             super(input, init);
 
             // Add all of the authorization parts onto the headers.
             const origHeaders = this.headers;
-            const authorizationHeader = getAuthHeader();
-            const keys = Object.keys(authorizationHeader);
-            keys.forEach((k) => origHeaders.append(k, authorizationHeader[k].toString()));
+            if (getAuthHeader) {
+                const authorizationHeader = getAuthHeader();
+                const keys = Object.keys(authorizationHeader);
+                keys.forEach((k) => origHeaders.append(k, authorizationHeader[k].toString()));
+            }
+            if (cookieString) {
+                origHeaders.append('Cookie', cookieString);
+            }
             origHeaders.append('Content-Type', 'application/json');
 
             // Rewrite the 'append' method for the headers to disallow 'authorization' after this point

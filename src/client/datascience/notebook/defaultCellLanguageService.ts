@@ -37,10 +37,24 @@ export class NotebookCellLanguageService implements IExtensionSingleActivationSe
      * Give preference to `python` when we don't know what to use.
      */
     public getPreferredLanguage(metadata?: nbformat.INotebookMetadata) {
-        const jupyterLanguage =
-            metadata?.language_info?.name ||
-            (metadata?.kernelspec as IJupyterKernelSpec | undefined)?.language ||
-            this.lastSavedNotebookCellLanguage;
+        const kernelSpec = metadata?.kernelspec as IJupyterKernelSpec | undefined;
+        let jupyterLanguage = metadata?.language_info?.name || kernelSpec?.language;
+
+        // If we have interpreter information, then it is a Python kernel.
+        if (!jupyterLanguage && kernelSpec?.metadata?.interpreter) {
+            jupyterLanguage = PYTHON_LANGUAGE;
+        }
+        if (!jupyterLanguage) {
+            if (
+                (metadata?.kernelspec?.display_name || '').toLocaleLowerCase().startsWith('python') ||
+                (metadata?.kernelspec?.name || '').toLocaleLowerCase().startsWith('python')
+            ) {
+                jupyterLanguage = PYTHON_LANGUAGE;
+            }
+        }
+        if (!jupyterLanguage) {
+            jupyterLanguage = this.lastSavedNotebookCellLanguage;
+        }
         return translateKernelLanguageToMonaco(jupyterLanguage || PYTHON_LANGUAGE);
     }
     public async activate() {

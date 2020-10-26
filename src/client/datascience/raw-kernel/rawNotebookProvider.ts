@@ -27,7 +27,7 @@ export class RawConnection implements IRawConnection {
     public readonly valid = true;
     public readonly displayName = localize.DataScience.rawConnectionDisplayName();
     private eventEmitter: EventEmitter<number> = new EventEmitter<number>();
-
+    constructor(public readonly language?: string) {}
     public dispose() {
         noop();
     }
@@ -62,7 +62,7 @@ export class RawNotebookProviderBase implements IRawNotebookProvider {
 
         // If not get only, create if needed and return
         if (!this.rawConnection) {
-            this.rawConnection = new RawConnection();
+            this.rawConnection = new RawConnection(options.language);
 
             // Fire our optional event that we have created a connection
             if (options.onConnectionMade) {
@@ -83,7 +83,8 @@ export class RawNotebookProviderBase implements IRawNotebookProvider {
         resource: Resource,
         disableUI: boolean,
         notebookMetadata: INotebookMetadataLive,
-        cancelToken?: CancellationToken
+        cancelToken?: CancellationToken,
+        _language?: string
     ): Promise<INotebook> {
         return this.createNotebookInstance(resource, identity, disableUI, notebookMetadata, cancelToken);
     }

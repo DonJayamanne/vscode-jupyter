@@ -34,6 +34,21 @@ const GlobalStateUserAllowsInsecureConnections = 'DataScienceAllowInsecureConnec
 // tslint:disable: no-any
 
 export class JupyterSessionManager implements IJupyterSessionManager {
+    private get jupyterlab(): typeof import('@jupyterlab/services') {
+        if (!this._jupyterlab) {
+            // tslint:disable-next-line: no-require-imports
+            this._jupyterlab = require('@jupyterlab/services');
+        }
+        return this._jupyterlab!;
+    }
+
+    public get onRestartSessionCreated() {
+        return this.restartSessionCreatedEvent.event;
+    }
+
+    public get onRestartSessionUsed() {
+        return this.restartSessionUsedEvent.event;
+    }
     private static secureServers = new Map<string, Promise<boolean>>();
     private sessionManager: SessionManager | undefined;
     private contentsManager: ContentsManager | undefined;
@@ -43,13 +58,6 @@ export class JupyterSessionManager implements IJupyterSessionManager {
     private readonly userAllowsInsecureConnections: IPersistentState<boolean>;
     private restartSessionCreatedEvent = new EventEmitter<Kernel.IKernelConnection>();
     private restartSessionUsedEvent = new EventEmitter<Kernel.IKernelConnection>();
-    private get jupyterlab(): typeof import('@jupyterlab/services') {
-        if (!this._jupyterlab) {
-            // tslint:disable-next-line: no-require-imports
-            this._jupyterlab = require('@jupyterlab/services');
-        }
-        return this._jupyterlab!;
-    }
     constructor(
         private jupyterPasswordConnect: IJupyterPasswordConnect,
         _config: IConfigurationService,
@@ -63,14 +71,6 @@ export class JupyterSessionManager implements IJupyterSessionManager {
             GlobalStateUserAllowsInsecureConnections,
             false
         );
-    }
-
-    public get onRestartSessionCreated() {
-        return this.restartSessionCreatedEvent.event;
-    }
-
-    public get onRestartSessionUsed() {
-        return this.restartSessionUsedEvent.event;
     }
     public async dispose() {
         traceInfo(`Disposing session manager`);
@@ -237,16 +237,7 @@ export class JupyterSessionManager implements IJupyterSessionManager {
         }
     }
 
-    // tslint:disable-next-line: no-any
-    private clearPoll(poll: { _timeout: any }) {
-        try {
-            clearTimeout(poll._timeout);
-        } catch {
-            noop();
-        }
-    }
-
-    private async getServerConnectSettings(connInfo: IJupyterConnection): Promise<ServerConnection.ISettings> {
+    public async getServerConnectSettings(connInfo: IJupyterConnection): Promise<ServerConnection.ISettings> {
         let serverSettings: Partial<ServerConnection.ISettings> = {
             baseUrl: connInfo.baseUrl,
             appUrl: '',
@@ -331,6 +322,15 @@ export class JupyterSessionManager implements IJupyterSessionManager {
 
         traceInfo(`Creating server with settings : ${JSON.stringify(serverSettings)}`);
         return this.jupyterlab.ServerConnection.makeSettings(serverSettings);
+    }
+
+    // tslint:disable-next-line: no-any
+    private clearPoll(poll: { _timeout: any }) {
+        try {
+            clearTimeout(poll._timeout);
+        } catch {
+            noop();
+        }
     }
 
     // If connecting on HTTP without a token prompt the user that this connection may not be secure

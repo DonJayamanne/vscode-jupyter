@@ -13,14 +13,23 @@ import { StopWatch } from '../../common/utils/stopWatch';
 import { IServiceContainer } from '../../ioc/types';
 import { sendTelemetryEvent } from '../../telemetry';
 import { CodeLensCommands, EditorContexts, Telemetry } from '../constants';
-import { ICodeWatcher, IDataScienceCodeLensProvider, IDebugLocationTracker } from '../types';
+import {
+    ICodeWatcher,
+    IDataScienceCodeLensProvider,
+    IDebugLocationTracker,
+    IInteractiveWindowExecutionCodeCellProvider
+} from '../types';
 
 @injectable()
 export class DataScienceCodeLensProvider implements IDataScienceCodeLensProvider, IDisposable {
+    public get onDidChangeCodeLenses(): vscode.Event<void> {
+        return this.didChangeCodeLenses.event;
+    }
     private totalExecutionTimeInMs: number = 0;
     private totalGetCodeLensCalls: number = 0;
     private activeCodeWatchers: ICodeWatcher[] = [];
     private didChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
+    private providersByLanguage = new Map<string, IInteractiveWindowExecutionCodeCellProvider>();
     constructor(
         @inject(IServiceContainer) private serviceContainer: IServiceContainer,
         @inject(IDebugLocationTracker) private debugLocationTracker: IDebugLocationTracker,
@@ -48,10 +57,6 @@ export class DataScienceCodeLensProvider implements IDataScienceCodeLensProvider
         }
     }
 
-    public get onDidChangeCodeLenses(): vscode.Event<void> {
-        return this.didChangeCodeLenses.event;
-    }
-
     // CodeLensProvider interface
     // Some implementation based on DonJayamanne's jupyter extension work
     public provideCodeLenses(document: vscode.TextDocument, _token: vscode.CancellationToken): vscode.CodeLens[] {
@@ -70,6 +75,12 @@ export class DataScienceCodeLensProvider implements IDataScienceCodeLensProvider
     // IDataScienceCodeLensProvider interface
     public getCodeWatcher(document: vscode.TextDocument): ICodeWatcher | undefined {
         return this.matchWatcher(document.fileName, document.version, this.configuration.getSettings(document.uri));
+    }
+    public registerProvider(provider: IInteractiveWindowExecutionCodeCellProvider) {
+        if (!this.providersByLanguage.has(provider.language)) {
+            this.providersByLanguage.set(provider.language, provider);
+            vscode.languages.registerCodeLensProvider(provider.language, this);
+        }
     }
 
     private onDebugLocationUpdated() {
@@ -196,7 +207,7 @@ export class DataScienceCodeLensProvider implements IDataScienceCodeLensProvider
 
     private createNewCodeWatcher(document: vscode.TextDocument): ICodeWatcher {
         const newCodeWatcher = this.serviceContainer.get<ICodeWatcher>(ICodeWatcher);
-        newCodeWatcher.setDocument(document);
+        newCodeWatcher.setDocument(document, this.providersByLanguage.get(document.languageId));
         newCodeWatcher.codeLensUpdated(this.onWatcherUpdated.bind(this));
         this.activeCodeWatchers.push(newCodeWatcher);
         return newCodeWatcher;

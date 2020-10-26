@@ -3,6 +3,8 @@
 'use strict';
 import * as vscode from 'vscode';
 import { IExtensionSingleActivationService } from '../activation/types';
+import { NotebookMetadataEditor } from '../activityBar/metadata/metadataHtmlEditor';
+import { NotebookMetadataTreeViewProvider } from '../activityBar/metadata/metadataTreeProvider';
 import { UseCustomEditorApi, UseVSCodeNotebookEditorApi } from '../common/constants';
 import { FileSystemPathUtils } from '../common/platform/fs-paths';
 import { IFileSystemPathUtils } from '../common/platform/types';
@@ -320,6 +322,8 @@ export function registerTypes(serviceManager: IServiceManager, inNotebookApiExpe
     serviceManager.addSingleton<IJupyterServerUriStorage>(IJupyterServerUriStorage, JupyterServerUriStorage);
     serviceManager.addSingleton<NotebookExtensibility>(NotebookExtensibility, NotebookExtensibility, undefined, [INotebookExtensibility, INotebookExecutionLogger]);
     serviceManager.addSingleton<IWebviewExtensibility>(IWebviewExtensibility, WebviewExtensibility);
+    serviceManager.addSingleton<IExtensionSingleActivationService>(IExtensionSingleActivationService, NotebookMetadataTreeViewProvider);
+    serviceManager.addSingleton<IExtensionSingleActivationService>(IExtensionSingleActivationService, NotebookMetadataEditor);
 
     registerNotebookTypes(serviceManager);
 }
