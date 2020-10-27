@@ -371,70 +371,73 @@ export class CellExecution {
         if (code.trim().length === 0) {
             return this.completedSuccessfully().then(noop, noop);
         }
-
-        const request = session.requestExecute(
-            {
-                code,
-                // sos: metadata.sos,
-                silent: false,
-                stop_on_error: false,
-                allow_stdin: true,
-                store_history: true, // Silent actually means don't output anything. Store_history is what affects execution_count
-                user_expressions: {}
-                // tslint:disable-next-line: no-any
-            } as any,
-            false,
-            metadata
-        );
-
-        // Listen to messages and update our cell execution state appropriately
-
-        // Keep track of our clear state
-        const clearState = new RefBool(false);
-
-        // Listen to the response messages and update state as we go
-        if (!request) {
-            return this.completedWithErrors(new Error('Session cannot generate requests')).then(noop, noop);
-        }
-
-        // Stop handling the request if the subscriber is canceled.
-        const cancelDisposable = this.token.onCancellationRequested(() => {
-            request.onIOPub = noop;
-            request.onStdin = noop;
-            request.onReply = noop;
-        });
-
-        // Listen to messages & chain each (to process them in the order we get them).
-        request.onIOPub = (msg) =>
-            (this.requestHandlerChain = this.requestHandlerChain.then(() =>
-                this.handleIOPub(clearState, loggers, msg).catch(noop)
-            ));
-        request.onReply = (msg) =>
-            (this.requestHandlerChain = this.requestHandlerChain.then(() =>
-                this.handleReply(clearState, msg).catch(noop)
-            ));
-        request.onStdin = this.handleInputRequest.bind(this, session);
-
-        // WARNING: Do not dispose `request`.
-        // Even after request.done & execute_reply is sent we could have more messages coming from iopub.
-        // We have tests for this & check https://github.com/microsoft/vscode-jupyter/issues/232 & https://github.com/jupyter/jupyter_client/issues/297
-
         try {
-            // When the request finishes we are done
-            // request.done resolves even before all iopub messages have been sent through.
-            // Solution is to wait for all messages to get processed.
-            await Promise.all([request.done, this.requestHandlerChain]);
-            await this.completedSuccessfully();
-        } catch (ex) {
-            // @jupyterlab/services throws a `Canceled` error when the kernel is interrupted.
-            // Such an error must be ignored.
-            if (ex && ex instanceof Error && ex.message === 'Canceled') {
-                await this.completedSuccessfully();
-            } else {
-                await this.completedWithErrors(ex);
+            const request = session.requestExecute(
+                {
+                    code,
+                    // sos: metadata.sos,
+                    silent: false,
+                    stop_on_error: false,
+                    allow_stdin: true,
+                    store_history: true, // Silent actually means don't output anything. Store_history is what affects execution_count
+                    user_expressions: {}
+                    // tslint:disable-next-line: no-any
+                } as any,
+                false,
+                metadata
+            );
+
+            // Listen to messages and update our cell execution state appropriately
+
+            // Keep track of our clear state
+            const clearState = new RefBool(false);
+
+            // Listen to the response messages and update state as we go
+            if (!request) {
+                return this.completedWithErrors(new Error('Session cannot generate requests')).then(noop, noop);
             }
-        } finally {
-            cancelDisposable.dispose();
+
+            // Stop handling the request if the subscriber is canceled.
+            const cancelDisposable = this.token.onCancellationRequested(() => {
+                request.onIOPub = noop;
+                request.onStdin = noop;
+                request.onReply = noop;
+            });
+
+            // Listen to messages & chain each (to process them in the order we get them).
+            request.onIOPub = (msg) =>
+                (this.requestHandlerChain = this.requestHandlerChain.then(() =>
+                    this.handleIOPub(clearState, loggers, msg).catch(noop)
+                ));
+            request.onReply = (msg) =>
+                (this.requestHandlerChain = this.requestHandlerChain.then(() =>
+                    this.handleReply(clearState, msg).catch(noop)
+                ));
+            request.onStdin = this.handleInputRequest.bind(this, session);
+
+            // WARNING: Do not dispose `request`.
+            // Even after request.done & execute_reply is sent we could have more messages coming from iopub.
+            // We have tests for this & check https://github.com/microsoft/vscode-jupyter/issues/232 & https://github.com/jupyter/jupyter_client/issues/297
+
+            try {
+                // When the request finishes we are done
+                // request.done resolves even before all iopub messages have been sent through.
+                // Solution is to wait for all messages to get processed.
+                await Promise.all([request.done, this.requestHandlerChain]);
+                await this.completedSuccessfully();
+            } catch (ex) {
+                // @jupyterlab/services throws a `Canceled` error when the kernel is interrupted.
+                // Such an error must be ignored.
+                if (ex && ex instanceof Error && ex.message === 'Canceled') {
+                    await this.completedSuccessfully();
+                } else {
+                    await this.completedWithErrors(ex);
+                }
+            } finally {
+                cancelDisposable.dispose();
+            }
+        } catch (ex) {
+            throw ex;
         }
     }
     @swallowExceptions()

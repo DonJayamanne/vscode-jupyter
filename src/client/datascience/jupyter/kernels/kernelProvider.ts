@@ -9,6 +9,7 @@ import { Uri } from 'vscode';
 import { IApplicationShell, ICommandManager, IVSCodeNotebook } from '../../../common/application/types';
 import { traceInfo, traceWarning } from '../../../common/logger';
 import { IAsyncDisposableRegistry, IConfigurationService, IDisposableRegistry } from '../../../common/types';
+import { RemoteKernelForKernelSpec } from '../../../remote/kernel/remoteKernel';
 import { IDataScienceErrorHandler, INotebookEditorProvider, INotebookProvider } from '../../types';
 import { Kernel } from './kernel';
 import { KernelSelector } from './kernelSelector';
@@ -41,20 +42,37 @@ export class KernelProvider implements IKernelProvider {
         this.disposeOldKernel(uri);
 
         const waitForIdleTimeout = this.configService.getSettings(uri).jupyterLaunchTimeout;
-        const kernel = new Kernel(
-            uri,
-            options.metadata,
-            this.notebookProvider,
-            this.disposables,
-            waitForIdleTimeout,
-            this.commandManager,
-            this.errorHandler,
-            this.editorProvider,
-            this,
-            this.kernelSelectionUsage,
-            this.appShell,
-            this.vscNotebook
-        );
+        let kernel: IKernel;
+        if (options.metadata.kind === 'startUsingKernelSpec') {
+            kernel = new RemoteKernelForKernelSpec(
+                uri,
+                options.metadata,
+                // this.disposables,
+                waitForIdleTimeout,
+                this.commandManager,
+                this.errorHandler,
+                this.editorProvider,
+                this,
+                this.kernelSelectionUsage,
+                this.appShell,
+                this.vscNotebook
+            );
+        } else {
+            kernel = new Kernel(
+                uri,
+                options.metadata,
+                this.notebookProvider,
+                this.disposables,
+                waitForIdleTimeout,
+                this.commandManager,
+                this.errorHandler,
+                this.editorProvider,
+                this,
+                this.kernelSelectionUsage,
+                this.appShell,
+                this.vscNotebook
+            );
+        }
         this.asyncDisposables.push(kernel);
         this.kernelsByUri.set(uri.toString(), { options, kernel });
         this.deleteMappingIfKernelIsDisposed(uri, kernel);

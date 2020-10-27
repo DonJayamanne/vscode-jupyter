@@ -342,8 +342,10 @@ export class JupyterPasswordConnect implements IJupyterPasswordConnect {
             redirect: 'manual',
             headers: { Connection: 'keep-alive' }
         });
-
+        const x = await response.text();
+        console.log(x);
         return response.status !== 200;
+        // return false;
     }
 
     private async makeRequest(url: string, options: nodeFetch.RequestInit): Promise<nodeFetch.Response> {

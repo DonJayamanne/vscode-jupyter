@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-import type { ServerConnection } from '@jupyterlab/services';
+import { ServerConnection } from '@jupyterlab/services';
 import { Agent as HttpsAgent } from 'https';
 import { inject, injectable } from 'inversify';
 import * as nodeFetch from 'node-fetch';
@@ -113,21 +113,33 @@ export class RemoteJupyterAuthProvider {
 
         // // Before we connect, see if we are trying to make an insecure connection, if we are, warn the user
         // await this.secureConnectionCheck(connInfo);
-
+        let token = '';
+        if (baseUrl.indexOf('token') > 0) {
+            token = baseUrl.substring(baseUrl.indexOf('=') + 1);
+            baseUrl = baseUrl.substring(0, baseUrl.indexOf('?token'));
+        }
         // const info = await this.remoteLoginService.getPasswordConnectionInfo(baseUrl);
-        const connection = await this.getServerConnectSettings({
-            baseUrl,
-            displayName: '',
-            localLaunch: false,
-            token: '',
-            valid: true,
-            disconnected: new EventEmitter<number>().event,
-            hostName: '',
-            localProcExitCode: 0,
-            rootDirectory: '',
-            type: 'jupyter',
-            dispose: noop
-        });
+        let connection: ServerConnection.ISettings;
+        if (token) {
+            connection = ServerConnection.makeSettings({
+                baseUrl,
+                token
+            });
+        } else {
+            connection = await this.getServerConnectSettings({
+                baseUrl,
+                displayName: '',
+                localLaunch: false,
+                token,
+                valid: true,
+                disconnected: new EventEmitter<number>().event,
+                hostName: '',
+                localProcExitCode: 0,
+                rootDirectory: '',
+                type: 'jupyter',
+                dispose: noop
+            });
+        }
         // tslint:disable-next-line: no-console
         console.log(connection);
 
@@ -252,7 +264,7 @@ export class RemoteJupyterAuthProvider {
             // tslint:disable-next-line:no-any
             Request: requestCtor,
             // tslint:disable-next-line:no-any
-            Headers: new nodeFetch.Headers({ Cookie: cookieString }) as any
+            Headers: new nodeFetch.Headers(cookieString ? { Cookie: cookieString } : {}) as any
         };
 
         traceInfo(`Creating server with settings : ${JSON.stringify(serverSettings)}`);
