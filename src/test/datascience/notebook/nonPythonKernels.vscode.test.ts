@@ -6,6 +6,7 @@
 // tslint:disable:no-require-imports no-var-requires
 import * as path from 'path';
 import * as sinon from 'sinon';
+import { assert } from 'chai';
 import { Uri } from 'vscode';
 import { IVSCodeNotebook } from '../../../client/common/application/types';
 import { IDisposable } from '../../../client/common/types';
@@ -116,7 +117,7 @@ suite('DataScience - VSCode Notebook - Kernels (non-python-kernel) (slow)', () =
         await openNotebook(api.serviceContainer, testEmptyPythonNb.fsPath);
         await waitForKernelToGetAutoSelected('python');
     });
-    test('Can run a Julia notebook', async function () {
+    test('Can run a Julia notebook and execution order is 1', async function () {
         this.timeout(30_000); // Can be slow to start Julia kernel on CI.
         await openNotebook(api.serviceContainer, testJuliaNb.fsPath);
         await insertCodeCell('123456', { language: 'julia', index: 0 });
@@ -128,5 +129,6 @@ suite('DataScience - VSCode Notebook - Kernels (non-python-kernel) (slow)', () =
         await waitForExecutionCompletedSuccessfully(cell);
 
         assertHasTextOutputInVSCode(cell, '123456', 0, false);
+        assert.equal(cell.metadata.executionOrder, 1);
     });
 });

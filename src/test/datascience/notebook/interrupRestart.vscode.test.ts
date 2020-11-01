@@ -7,6 +7,7 @@ import { assert } from 'chai';
 import * as sinon from 'sinon';
 import { commands, NotebookEditor as VSCNotebookEditor } from 'vscode';
 import { IApplicationShell, IVSCodeNotebook } from '../../../client/common/application/types';
+import { traceInfo } from '../../../client/common/logger';
 import { IConfigurationService, IDisposable, IJupyterSettings, ReadWrite } from '../../../client/common/types';
 import { createDeferredFromPromise } from '../../../client/common/utils/async';
 import { DataScience } from '../../../client/common/utils/localize';
@@ -25,6 +26,7 @@ import {
     insertCodeCell,
     startJupyter,
     trustAllNotebooks,
+    waitForExecutionCompletedSuccessfully,
     waitForExecutionCompletedWithErrors,
     waitForKernelToGetAutoSelected,
     waitForTextOutputInVSCode
@@ -81,6 +83,15 @@ suite('DataScience - VSCode Notebook - Restart/Interrupt/Cancel/Errors (slow)', 
         await closeNotebooksAndCleanUpAfterTests(disposables.concat(suiteDisposables));
     });
 
+    test('First cell will have execution count of 1', async () => {
+        await insertCodeCell('print("Hello World")', { index: 0 });
+        const cell = vscEditor.document.cells[0];
+
+        await executeActiveDocument();
+
+        await waitForExecutionCompletedSuccessfully(cell);
+        assert.equal(cell.metadata.executionOrder, 1);
+    });
     test('Interrupting kernel (Cancelling token) will cancel cell execution', async () => {
         await insertCodeCell('import time\nfor i in range(10000):\n  print(i)\n  time.sleep(0.1)', { index: 0 });
         const cell = vscEditor.document.cells[0];
@@ -132,25 +143,30 @@ suite('DataScience - VSCode Notebook - Restart/Interrupt/Cancel/Errors (slow)', 
         disposables.push({ dispose: () => showInformationMessage.restore() });
 
         (editorProvider.activeEditor as any).shouldAskForRestart = () => Promise.resolve(false);
+        traceInfo('Before Executing document');
         await executeActiveDocument();
 
         // Wait for cell to get busy.
+        traceInfo('Before waiting for completion');
         await waitForCondition(async () => assertVSCCellIsRunning(cell), 15_000, 'Cell not being executed');
 
         // Wait for ?s, and verify cell is still running.
         assertVSCCellIsRunning(cell);
         // Wait for some output.
+        traceInfo('Before waiting for output');
         await waitForTextOutputInVSCode(cell, '1', 0, false, 15_000); // Wait for 15 seconds for it to start (possibly kernel is still starting).
 
         // Restart the kernel.
         let restartPromise = commands.executeCommand('jupyter.notebookeditor.restartkernel');
 
+        traceInfo('Before waiting for not running');
         await waitForCondition(async () => assertVSCCellIsNotRunning(cell), 15_000, 'Execution not cancelled');
 
         // Wait before we execute cells again.
         await restartPromise;
 
         // Confirm we can execute a cell (using the new kernel session).
+        traceInfo('Before waiting for not running');
         await executeActiveDocument();
 
         // Wait for cell to get busy.
