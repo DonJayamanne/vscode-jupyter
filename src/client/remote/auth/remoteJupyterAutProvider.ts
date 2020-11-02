@@ -162,6 +162,13 @@ export class RemoteJupyterAuthProvider {
             JSON.stringify(getSerializableServerConnectionId(connection)),
             server
         );
+        server.onDidDispose(() => {
+            RemoteJupyterAuthProvider._servers = RemoteJupyterAuthProvider._servers.filter((item) => item !== server);
+            RemoteJupyterAuthProvider.serverMappedBySettings.delete(getServerConnectionId(connection));
+            RemoteJupyterAuthProvider.serverMappedBySerializableConnectionSettingsId.delete(
+                JSON.stringify(getSerializableServerConnectionId(connection))
+            );
+        });
         this._onDidAddServer.fire(server);
         return server;
         // // const sessions = connection.fetch({})

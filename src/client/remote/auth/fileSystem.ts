@@ -149,6 +149,8 @@ export class RemoteFileSystem implements FileSystemProvider {
         content: Uint8Array,
         options: { create: boolean; overwrite: boolean }
     ): Promise<void> {
+        // Support save as, new file, etc.
+        // Check options.create // overwrite
         if (options.create) {
             return;
         } else {
@@ -212,12 +214,32 @@ export class RemoteFileSystem implements FileSystemProvider {
         this._fireSoon({ type: FileChangeType.Changed, uri }, { uri, type: FileChangeType.Deleted });
     }
 
-    public async createBlankNotebook(remotePath: Uri): Promise<Uri | undefined> {
+    public async createNewNotebook(remotePath: Uri): Promise<Uri | undefined> {
         const server = await this.getRemoteServer();
         const mgr = new ContentsManager({
             serverSettings: server.info
         });
         const model = await mgr.newUntitled({ type: 'notebook', path: remotePath.fsPath });
+        // model = await mgr.get(model.path, { format: 'json', type: 'notebook', content: true });
+        // const notebookContent = model.content as nbformat.INotebookContent;
+        // notebookContent.cells.push({
+        //     cell_type: 'code',
+        //     execution_count: null,
+        //     metadata: {},
+        //     outputs: [],
+        //     source: []
+        // });
+        // await mgr.save(model.path, { content: model.content, type: 'notebook', format: 'json' });
+        if (model) {
+            return Uri.file(model.path).with({ scheme: this.scheme });
+        }
+    }
+    public async createNewFolder(remotePath: Uri): Promise<Uri | undefined> {
+        const server = await this.getRemoteServer();
+        const mgr = new ContentsManager({
+            serverSettings: server.info
+        });
+        const model = await mgr.newUntitled({ type: 'directory', path: remotePath.fsPath });
         // model = await mgr.get(model.path, { format: 'json', type: 'notebook', content: true });
         // const notebookContent = model.content as nbformat.INotebookContent;
         // notebookContent.cells.push({

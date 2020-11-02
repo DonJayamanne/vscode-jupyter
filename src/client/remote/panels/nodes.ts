@@ -44,6 +44,7 @@ export class StatusNode extends TreeItem implements ITreeNode<'serverStatus'> {
     public readonly type = 'serverStatus';
     constructor(private readonly status: ServerStatus) {
         super('Status', TreeItemCollapsibleState.Collapsed);
+        this.contextValue = this.type;
     }
 
     public async getChildren(): Promise<TreeItem[]> {
@@ -57,11 +58,12 @@ export class StatusNode extends TreeItem implements ITreeNode<'serverStatus'> {
 }
 export class KernelNode extends TreeItem implements ITreeNode<'serverKernel'> {
     public readonly type = 'serverKernel';
-    constructor(_: RemoteServer, kernel: ServerSessionKernel) {
+    constructor(public server: RemoteServer, public kernel: ServerSessionKernel) {
         super(kernel.name || kernel.id, TreeItemCollapsibleState.None);
         const connection = kernel.connections === 1 ? '1 connection' : `${kernel.connections} connections`;
         this.description = connection;
         this.tooltip = connection;
+        this.contextValue = this.type;
         // this.iconPath = Uri.file(
         //     '/Users/donjayamanne/Desktop/Development/vsc/vscode-jupyter/src/test/datascience/sub/test.ipynb'
         // );
@@ -87,6 +89,7 @@ export class SessionNode extends TreeItem implements ITreeNode<'serverSession'> 
             session.kernel.connections === 1 ? '1 connection' : `${session.kernel.connections} connections`;
         this.description = `${connection} using kernel ${session.kernel.name}`;
         this.tooltip = `${connection} using kernel ${session.kernel.name}`;
+        this.contextValue = this.type;
         // this.iconPath = Uri.file(
         //     '/Users/donjayamanne/Desktop/Development/vsc/vscode-jupyter/src/test/datascience/sub/test.ipynb'
         // );
@@ -104,6 +107,7 @@ export class SessionsNode extends TreeItem implements ITreeNode<'serverSessions'
         // const uri = Uri.file('wow.ipynb');
         // this.resourceUri = uri;
         this.iconPath = new ThemeIcon('vm-active');
+        this.contextValue = this.type;
     }
 
     public async getChildren(): Promise<TreeItem[]> {
@@ -118,6 +122,7 @@ export class KernelsNode extends TreeItem implements ITreeNode<'serverKernels'> 
     constructor(private readonly info: RemoteServer) {
         super('Active kernels', TreeItemCollapsibleState.Collapsed);
         this.iconPath = new ThemeIcon('zap');
+        this.contextValue = this.type;
     }
 
     public async getChildren(): Promise<TreeItem[]> {
@@ -128,10 +133,11 @@ export class KernelsNode extends TreeItem implements ITreeNode<'serverKernels'> 
 
 export class DirectoryNode extends TreeItem implements ITreeNode<'directory'> {
     public readonly type = 'directory';
-    constructor(private readonly info: RemoteServer, private readonly dir: DirectoryEntry) {
+    constructor(public readonly info: RemoteServer, public readonly dir: DirectoryEntry) {
         super(dir.name, TreeItemCollapsibleState.Collapsed);
         this.resourceUri = Uri.parse(dir.path);
         this.iconPath = ThemeIcon.Folder;
+        this.contextValue = this.type;
     }
 
     public async getChildren(): Promise<TreeItem[]> {
@@ -142,11 +148,12 @@ export class DirectoryNode extends TreeItem implements ITreeNode<'directory'> {
 }
 export class FileNode extends TreeItem implements ITreeNode<'file'> {
     public readonly type = 'file';
-    constructor(info: RemoteServer, file: FileEntry) {
+    constructor(public info: RemoteServer, public file: FileEntry) {
         super(file.name, TreeItemCollapsibleState.None);
         this.iconPath = ThemeIcon.File;
         const uri = Uri.parse(file.path).with({ scheme: info.fileScheme });
         this.resourceUri = uri;
+        this.contextValue = this.type;
 
         this.command = {
             command: file.type === 'file' ? 'vscode.open' : Commands.OpenNotebookInPreviewEditor,
@@ -174,11 +181,12 @@ function sortFolderContents(items: (DirectoryNode | FileNode)[]): (DirectoryNode
 
 export class FileSystemNode extends TreeItem implements ITreeNode<'fileSystem'> {
     public readonly type = 'fileSystem';
-    constructor(private readonly info: RemoteServer) {
+    constructor(public readonly info: RemoteServer) {
         super('File System', TreeItemCollapsibleState.Collapsed);
         // this.resourceUri = Uri.parse(info.info.baseUrl);
         // this.iconPath = ThemeIcon.Folder;
         this.iconPath = new ThemeIcon('remote-explorer');
+        this.contextValue = this.type;
     }
 
     public async getChildren(): Promise<TreeItem[]> {
@@ -188,15 +196,16 @@ export class FileSystemNode extends TreeItem implements ITreeNode<'fileSystem'> 
 }
 export class ServerNode extends TreeItem implements ITreeNode<'server'> {
     public readonly type = 'server';
-    constructor(private readonly info: RemoteServer) {
+    constructor(public readonly info: RemoteServer) {
         super(info.label, TreeItemCollapsibleState.Expanded);
         this.iconPath = new ThemeIcon('server');
+        this.contextValue = this.type;
     }
 
     public async getChildren() {
-        const status = await this.info.getStatus();
+        // const status = await this.info.getStatus();
         return [
-            new StatusNode(status),
+            // new StatusNode(status),
             new KernelsNode(this.info),
             new SessionsNode(this.info),
             new FileSystemNode(this.info)

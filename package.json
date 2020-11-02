@@ -694,10 +694,58 @@
                 "command": "jupyter.addRemoteServer",
                 "title": "Add Server",
                 "category": "Jupyter",
-                "icon": {
-                    "light": "resources/light/un-trusted.svg",
-                    "dark": "resources/dark/un-trusted.svg"
-                }
+                "icon": "$(add)"
+            },
+            {
+                "command": "jupyter.logoutRemoteServer",
+                "title": "Log out",
+                "category": "Jupyter",
+                "icon": "$(sign-out)"
+            },
+            {
+                "command": "jupyter.refreshRemoteServerNode",
+                "title": "Refresh",
+                "icon":"$(refresh)"
+            },
+            {
+                "command": "jupyter.addFolderOnRemoteServer",
+                "title": "New Folder",
+                "icon":"$(new-folder)"
+            },
+            {
+                "command": "jupyter.addFileOnRemoteServer",
+                "title": "New File",
+                "icon":"$(new-file)"
+            },
+            {
+                "command": "jupyter.addNotebookOnRemoteServer",
+                "title": "New Notebook",
+                "icon":"$(notebook)"
+            },
+            {
+                "command": "jupyter.restartKernelOnRemoteServer",
+                "title": "Restart Kernel",
+                "icon":"$(debug-restart)"
+            },
+            {
+                "command": "jupyter.interruptKernelOnRemoteServer",
+                "title": "Interrupt Kernel",
+                "icon":"$(zap)"
+            },
+            {
+                "command": "jupyter.stopKernelOnRemoteServer",
+                "title": "Shutdown",
+                "icon":"$(stop-circle)"
+            },
+            {
+                "command": "jupyter.filterNotebooksOnRemoteServer",
+                "title": "Show only notebooks and folders",
+                "icon":"$(filter)"
+            },
+            {
+                "command": "jupyter.filterShowAllOnRemoteServer",
+                "title": "Show all files and folders",
+                "icon":"$(list-filter)"
             }
         ],
         "menus": {
@@ -1254,6 +1302,62 @@
                     "command": "jupyter.addRemoteServer",
                     "when": "view == jupyter.remoteServer",
                     "group": "navigation@1"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "jupyter.logoutRemoteServer",
+                    "when": "view == jupyter.remoteServer && viewItem == server"
+                },
+                {
+                    "command": "jupyter.logoutRemoteServer",
+                    "when": "view == jupyter.remoteServer && viewItem == server",
+                    "group": "inline@0"
+                },
+                {
+                    "command": "jupyter.refreshRemoteServerNode",
+                    "when": "viewItem == serverSessions || viewItem == serverKernels",
+                    "group": "inline@0"
+                },
+                {
+                    "command": "jupyter.addFolderOnRemoteServer",
+                    "when": "viewItem == fileSystem || viewItem == directory",
+                    "group": "inline@0"
+                },
+                {
+                    "command": "jupyter.addFileOnRemoteServer",
+                    "when": "viewItem == fileSystem || viewItem == directory",
+                    "group": "inline@0"
+                },
+                {
+                    "command": "jupyter.addNotebookOnRemoteServer",
+                    "when": "viewItem == fileSystem || viewItem == directory",
+                    "group": "inline@0"
+                },
+                {
+                    "command": "jupyter.restartKernelOnRemoteServer",
+                    "when": "viewItem == serverKernel",
+                    "group": "inline@0"
+                },
+                {
+                    "command": "jupyter.interruptKernelOnRemoteServer",
+                    "when": "viewItem == serverKernel",
+                    "group": "inline@0"
+                },
+                {
+                    "command": "jupyter.stopKernelOnRemoteServer",
+                    "when": "viewItem == serverKernel || viewItem === serverSession",
+                    "group": "inline@0"
+                },
+                {
+                    "command": "jupyter.filterNotebooksOnRemoteServer",
+                    "when": "viewItem == fileSystem",
+                    "group": "inline@0"
+                },
+                {
+                    "command": "jupyter.filterShowAllOnRemoteServer",
+                    "when": "viewItem == fileSystem",
+                    "group": "inline@0"
                 }
             ]
         },

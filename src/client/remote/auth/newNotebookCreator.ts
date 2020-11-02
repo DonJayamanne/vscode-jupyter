@@ -51,7 +51,7 @@ export class NewNotebookCreator implements IExtensionSingleActivationService {
         if (!remoteFolder) {
             return;
         }
-        const notebookUri = await fileSystem.createBlankNotebook(remoteFolder);
+        const notebookUri = await fileSystem.createNewNotebook(remoteFolder);
         if (notebookUri) {
             commands.executeCommand(Commands.OpenNotebookInPreviewEditor, notebookUri).then(noop, noop);
         }

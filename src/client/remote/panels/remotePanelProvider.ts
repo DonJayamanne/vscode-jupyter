@@ -1,17 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+import { Kernel, SessionManager } from '@jupyterlab/services';
 import { inject, injectable } from 'inversify';
-import { commands, Event, EventEmitter, notebook, TreeDataProvider, TreeItem, window } from 'vscode';
+import * as path from 'path';
+import { commands, Event, EventEmitter, notebook, TreeDataProvider, TreeItem, Uri, window } from 'vscode';
 import { NotebookDocumentMetadataChangeEvent } from '../../../../types/vscode-proposed';
 import { IExtensionSingleActivationService } from '../../activation/types';
 import { IDisposableRegistry } from '../../common/types';
 import { noop } from '../../common/utils/misc';
 import { getNotebookMetadata } from '../../datascience/notebook/helpers/helpers';
-import { RemoteFileSystemFactory } from '../auth/fileSystem';
+import { RemoteFileSystem, RemoteFileSystemFactory } from '../auth/fileSystem';
 import { RemoteJupyterAuthProvider } from '../auth/remoteJupyterAutProvider';
 import { RemoteServer } from '../auth/server';
-import { RemoteServerNode, ServerNode } from './nodes';
+import { DirectoryNode, FileSystemNode, KernelNode, RemoteServerNode, ServerNode } from './nodes';
 
 @injectable()
 export class RemoteTreeViewProvider implements TreeDataProvider<RemoteServerNode>, IExtensionSingleActivationService {
@@ -37,6 +39,24 @@ export class RemoteTreeViewProvider implements TreeDataProvider<RemoteServerNode
         notebook.onDidChangeNotebookDocumentMetadata(this.onDidChangeNotebookMetadata, this);
         this.parseTree();
         commands.executeCommand('setContext', 'notebookMetadataOutline.visible', true);
+        this.disposables.push(commands.registerCommand('jupyter.logoutRemoteServer', this.logOutRemoteServer, this));
+        this.disposables.push(commands.registerCommand('jupyter.refreshRemoteServerNode', this.refreshNode, this));
+        this.disposables.push(commands.registerCommand('jupyter.addFolderOnRemoteServer', this.addFolder, this));
+        this.disposables.push(commands.registerCommand('jupyter.addFileOnRemoteServer', this.addFile, this));
+        this.disposables.push(commands.registerCommand('jupyter.addNotebookOnRemoteServer', this.addNotebook, this));
+        this.disposables.push(
+            commands.registerCommand('jupyter.restartKernelOnRemoteServer', this.restartKernel, this)
+        );
+        this.disposables.push(commands.registerCommand('jupyter.stopKernelOnRemoteServer', this.stopkernel, this));
+        this.disposables.push(
+            commands.registerCommand('jupyter.interruptKernelOnRemoteServer', this.interruptKernel, this)
+        );
+        this.disposables.push(
+            commands.registerCommand('jupyter.filterNotebooksOnRemoteServer', this.interruptKernel, this)
+        );
+        this.disposables.push(
+            commands.registerCommand('jupyter.filterShowAllOnRemoteServer', this.interruptKernel, this)
+        );
         this.onDidChangeActiveNotebookEditor().catch(noop);
         this.registerCommands();
     }
@@ -52,28 +72,6 @@ export class RemoteTreeViewProvider implements TreeDataProvider<RemoteServerNode
         } else {
             this._onDidChangeTreeData.fire(undefined);
         }
-    }
-
-    public rename(offset: number): void {
-        window.showInputBox({ placeHolder: 'Enter the new label' }).then((value) => {
-            if (value !== null && value !== undefined) {
-                // tslint:disable: no-console
-                console.log(value, offset);
-                // this.editor.edit((editBuilder) => {
-                //     const path = json.getLocation(this.text, offset).path;
-                //     let propertyNode = json.findNodeAtLocation(this.tree, path);
-                //     if (propertyNode && propertyNode.parent && propertyNode?.parent?.type !== 'array') {
-                //         propertyNode = (Array.isArray(propertyNode?.parent?.children) && propertyNode.parent.children.length > 0) ? propertyNode?.parent.children[0] : undefined;
-                //     }
-
-                //     // editBuilder.replace(range, `"${value}"`);
-                //     setTimeout(() => {
-                //         this.parseTree();
-                //         this.refresh(offset);
-                //     }, 100);
-                // });
-            }
-        });
     }
 
     public async getChildren(item?: RemoteServerNode): Promise<RemoteServerNode[]> {
@@ -118,6 +116,67 @@ export class RemoteTreeViewProvider implements TreeDataProvider<RemoteServerNode
         // tslint:disable-next-line: no-any
         return undefined as any;
         // return;
+    }
+    private logOutRemoteServer(serverNode: ServerNode) {
+        this.serverNodes.delete(serverNode);
+        const server = RemoteJupyterAuthProvider.getServerByFileScheme(serverNode.info.fileScheme);
+        server?.dispose();
+        this._onDidChangeTreeData.fire(undefined);
+    }
+    private refreshNode(x: any) {
+        console.log(x);
+    }
+    private async restartKernel(node: KernelNode) {
+        const model = await Kernel.findById(node.kernel.id, node.server.info);
+        const kernel = Kernel.connectTo(model, node.server.info);
+        await kernel.restart();
+    }
+    private async stopkernel(node: KernelNode) {
+        const model = await Kernel.findById(node.kernel.id, node.server.info);
+        const kernel = Kernel.connectTo(model, node.server.info);
+        await kernel.shutdown();
+    }
+    private async interruptKernel(node: KernelNode) {
+        const model = await Kernel.findById(node.kernel.id, node.server.info);
+        const kernel = Kernel.connectTo(model, node.server.info);
+        await kernel.interrupt();
+    }
+    private async addFolder(node: FileSystemNode | DirectoryNode) {
+        let fileSystem: RemoteFileSystem | undefined;
+        fileSystem = this.fsFactory.getRemoteFileSystem(node.info.fileScheme);
+        if (!fileSystem) {
+            return;
+        }
+        let folder: Uri | undefined;
+        if (node instanceof FileSystemNode) {
+            folder = fileSystem.rootFolder;
+        } else {
+            folder = Uri.file(path.join(fileSystem.rootFolder.fsPath, node.dir.path)).with({
+                scheme: node.info.fileScheme
+            });
+        }
+        await fileSystem.createNewFolder(folder);
+        this._onDidChangeTreeData.fire(node);
+    }
+    private addFile(x: any) {
+        console.log(x);
+    }
+    private async addNotebook(node: FileSystemNode | DirectoryNode) {
+        let fileSystem: RemoteFileSystem | undefined;
+        fileSystem = this.fsFactory.getRemoteFileSystem(node.info.fileScheme);
+        if (!fileSystem) {
+            return;
+        }
+        let folder: Uri | undefined;
+        if (node instanceof FileSystemNode) {
+            folder = fileSystem.rootFolder;
+        } else {
+            folder = Uri.file(path.join(fileSystem.rootFolder.fsPath, node.dir.path)).with({
+                scheme: node.info.fileScheme
+            });
+        }
+        await fileSystem.createNewNotebook(folder);
+        this._onDidChangeTreeData.fire(node);
     }
     private registerCommands() {
         commands.registerCommand(

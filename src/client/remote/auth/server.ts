@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+import * as path from 'path';
 import { ContentsManager, KernelManager, ServerConnection, SessionManager } from '@jupyterlab/services';
 import { EventEmitter } from 'vscode';
 import { IJupyterKernelSpec } from '../../datascience/types';
@@ -26,8 +27,11 @@ export class RemoteServer {
     public dispose() {
         this._disposed.fire();
     }
-
     public async getStatus(): Promise<ServerStatus> {
+        const response = await this.info.fetch(path.join(this.info.baseUrl, 'api/status'));
+        console.log(response);
+        const x = await response.text();
+        console.log(x);
         // return this.fetch<ServerStatus>('api/status');
         return {
             connections: 0,
