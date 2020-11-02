@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-import { Kernel, SessionManager } from '@jupyterlab/services';
+import { Kernel } from '@jupyterlab/services';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import { commands, Event, EventEmitter, notebook, TreeDataProvider, TreeItem, Uri, window } from 'vscode';
