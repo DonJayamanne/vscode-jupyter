@@ -675,6 +675,12 @@
                 "command": "jupyter.clearSavedJupyterUris",
                 "title": "%jupyter.command.jupyter.clearSavedJupyterUris.title%",
                 "category": "Jupyter"
+            },
+            {
+                "command": "jupyter.addServer",
+                "title": "%jupyter.command.jupyter.addServer.title%",
+                "category": "Jupyter",
+                "icon": "$(add)"
             }
         ],
         "menus": {
@@ -1225,6 +1231,13 @@
                     "group": "1_view",
                     "when": "python.isDebuggerDataViewerExperimentEnabled && debugProtocolVariableMenuContext == 'viewableInDataViewer'"
                 }
+            ],
+            "view/title": [
+                {
+                    "command": "jupyter.addServer",
+                    "when": "view == jupyter.serversView",
+                    "group": "navigation@1"
+                }
             ]
         },
         "configuration": {
@@ -1685,6 +1698,25 @@
                 ]
             }
         ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "jupyter",
+                    "title": "Jupyter",
+                    "icon": "resources/jupyter.svg"
+                }
+            ]
+        },
+        "views": {
+            "jupyter": [
+                {
+                    "id": "jupyter.serversView",
+                    "name": "Servers",
+                    "icon": "resources/jupyter.svg",
+                    "contextualTitle": "Local/remote Jupyter Server(s)"
+                }
+            ]
+        },
         "notebookProvider": [
             {
                 "viewType": "jupyter-notebook",

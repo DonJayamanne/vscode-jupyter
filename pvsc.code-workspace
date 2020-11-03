@@ -15,6 +15,10 @@
             "path": "../vscode-notebook-renderers"
         },
         {
+            "name": "vscode-notebook-renderer-starter",
+            "path": "/Users/donjayamanne/Desktop/Development/vsc/vscode-notebook-renderer-starter"
+        },
+        {
             "name": "vscode-python",
             "path": "../vscode-python"
         }
@@ -90,19 +94,19 @@
                 "name": "Jupyter + Python + Renderer Extension",
                 "args": [
                     "--enable-proposed-api",
-                    "--extensionDevelopmentPath=${workspaceFolder:vscode-python}",
                     "--extensionDevelopmentPath=${workspaceFolder:vscode-jupyter}",
-                    "--extensionDevelopmentPath=${workspaceFolder:vscode-notebook-renderers}"
+                    "--extensionDevelopmentPath=${workspaceFolder:vscode-notebook-renderers}",
+                    "--extensionDevelopmentPath=${workspaceFolder:vscode-notebook-renderer-starter}"
                 ],
                 "stopOnEntry": false,
                 "sourceMaps": true,
                 "outFiles": [
-                    "${workspaceFolder:vscode-python}/out/**/*.js",
-                    "!${workspaceFolder:vscode-python}/**/node_modules**/*",
                     "${workspaceFolder:vscode-jupyter}/out/**/*.js",
                     "!${workspaceFolder:vscode-jupyter}/**/node_modules**/*",
                     "${workspaceFolder:vscode-notebook-renderers}/out/**/*.js",
-                    "!${workspaceFolder:vscode-notebook-renderers}/**/node_modules**/*"
+                    "!${workspaceFolder:vscode-notebook-renderers}/**/node_modules**/*",
+                    "${workspaceFolder:vscode-notebook-renderer-starter}/out/**/*.js",
+                    "!${workspaceFolder:vscode-notebook-renderer-starter}/**/node_modules**/*"
                 ],
                 "skipFiles": [
                     "<node_internals>/**"
