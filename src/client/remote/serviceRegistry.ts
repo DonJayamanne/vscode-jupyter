@@ -7,6 +7,7 @@ import { CommandRegistry } from './commands';
 import { RemoteFileSchemeManager } from './connection/fileSchemeManager';
 import { JupyterServerConnectionService } from './connection/remoteConnectionsService';
 import { RemoteFileSystemFactory } from './ui/fileSystemFactory';
+import { RemoteNotebookCreator } from './ui/newNotebookCreator';
 import { JupyterServersTreeDataProvider } from './ui/serversTreeDataProvider';
 import { JupyterServersTreeView } from './ui/serversTreeView';
 import { IJupyterServerConnectionService } from './ui/types';
@@ -27,6 +28,10 @@ export function registerTypes(serviceManager: IServiceManager) {
     serviceManager.addSingleton<IExtensionSingleActivationService>(
         IExtensionSingleActivationService,
         JupyterServersTreeView
+    );
+    serviceManager.addSingleton<IExtensionSingleActivationService>(
+        IExtensionSingleActivationService,
+        RemoteNotebookCreator
     );
     serviceManager.addSingleton<IExtensionSingleActivationService>(IExtensionSingleActivationService, CommandRegistry);
 }

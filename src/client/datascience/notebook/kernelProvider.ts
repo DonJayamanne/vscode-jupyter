@@ -11,6 +11,7 @@ import {
     NotebookKernel as VSCNotebookKernel,
     NotebookKernelProvider
 } from '../../../../types/vscode-proposed';
+// import { extractInputText } from '../../../datascience-ui/interactive-common/mainState';
 import { IVSCodeNotebook } from '../../common/application/types';
 import { traceInfo } from '../../common/logger';
 import { IDisposableRegistry } from '../../common/types';
@@ -24,6 +25,7 @@ import { areKernelConnectionsEqual } from '../jupyter/kernels/helpers';
 import { KernelSelectionProvider } from '../jupyter/kernels/kernelSelections';
 import { KernelSelector } from '../jupyter/kernels/kernelSelector';
 import { KernelSwitcher } from '../jupyter/kernels/kernelSwitcher';
+import { RemoteJupyterKernel } from '../jupyter/kernels/remoteKernel';
 import {
     DefaultKernelConnectionMetadata,
     getKernelConnectionId,
@@ -55,7 +57,7 @@ export class VSCodeNotebookKernelMetadata implements VSCNotebookKernel {
         public readonly description: string,
         public readonly detail: string,
         public readonly selection: Readonly<KernelConnectionMetadata>,
-        public readonly isPreferred: boolean,
+        public isPreferred: boolean,
         private readonly kernelProvider: IKernelProvider,
         private readonly notebook: IVSCodeNotebook
     ) {}
@@ -141,8 +143,9 @@ export class VSCodeKernelPickerProvider implements NotebookKernelProvider {
         let kernels: VSCodeNotebookKernelMetadata[];
         if (this.remoteConnections.findConnection(document.uri)) {
             kernels = await this.provideRemoteKernels(document, token);
+            kernels = kernels || (await this.provideLocalKernels(document, token));
         } else {
-            kernels = await this.provideLocalKernels(document, token);
+            kernels = await this.provideRemoteKernels(document, token);
         }
 
         kernels.sort((a, b) => {
@@ -154,6 +157,10 @@ export class VSCodeKernelPickerProvider implements NotebookKernelProvider {
                 return -1;
             }
         });
+        const found = kernels.find((item) => item.selection.kind === 'connectToLiveKernel');
+        if (found) {
+            found.isPreferred = true;
+        }
         return kernels;
     }
     // tslint:disable-next-line: cyclomatic-complexity
@@ -161,7 +168,10 @@ export class VSCodeKernelPickerProvider implements NotebookKernelProvider {
         document: NotebookDocument,
         token: CancellationToken
     ): Promise<VSCodeNotebookKernelMetadata[]> {
-        const connection = this.remoteConnections.findConnection(document.uri);
+        const connections = await this.remoteConnections.getConnections();
+        const connection = connections.length
+            ? this.remoteConnections.findConnection(connections[0].id)
+            : this.remoteConnections.findConnection(document.uri);
         if (!connection) {
             return [];
         }
@@ -261,7 +271,7 @@ export class VSCodeKernelPickerProvider implements NotebookKernelProvider {
 
         // Turn this into our preferred list.
         const existingItem = new Set<string>();
-        const mapped = withInterpreter
+        return withInterpreter
             .map((kernel) => {
                 return new VSCodeNotebookKernelMetadata(
                     kernel.label,
@@ -277,80 +287,83 @@ export class VSCodeKernelPickerProvider implements NotebookKernelProvider {
                 if (existingItem.has(item.id)) {
                     return false;
                 }
+                if (item.selection.kind !== 'connectToLiveKernel') {
+                    return false;
+                }
                 existingItem.add(item.id);
                 return true;
             });
 
-        // If no preferred kernel set but we have a language, use that to set preferred instead.
-        if (!mapped.find((v) => v.isPreferred)) {
-            const languages = document.cells.map((c) => c.language);
-            // Find the first that matches on language
-            const indexOfKernelMatchingDocumentLanguage = kernels.findIndex((k) =>
-                languages.find((l) => l === k.selection.kernelSpec?.language)
-            );
+        // // If no preferred kernel set but we have a language, use that to set preferred instead.
+        // if (!mapped.find((v) => v.isPreferred)) {
+        //     const languages = document.cells.map((c) => c.language);
+        //     // Find the first that matches on language
+        //     const indexOfKernelMatchingDocumentLanguage = kernels.findIndex((k) =>
+        //         languages.find((l) => l === k.selection.kernelSpec?.language)
+        //     );
 
-            // If we have a preferred kernel, then add that to the list, & put it on top of the list.
-            const preferredKernelMetadata = this.createNotebookKernelMetadataFromPreferredKernel(preferredKernel);
-            if (preferredKernelMetadata) {
-                mapped.splice(0, 0, preferredKernelMetadata);
-            } else if (indexOfKernelMatchingDocumentLanguage >= 0) {
-                const kernel = kernels[indexOfKernelMatchingDocumentLanguage];
-                mapped.splice(
-                    indexOfKernelMatchingDocumentLanguage,
-                    1,
-                    new VSCodeNotebookKernelMetadata(
-                        kernel.label,
-                        kernel.description || '',
-                        kernel.detail || '',
-                        kernel.selection,
-                        true,
-                        this.kernelProvider,
-                        this.notebook
-                    )
-                );
-            }
-        }
-        return mapped;
+        //     // If we have a preferred kernel, then add that to the list, & put it on top of the list.
+        //     const preferredKernelMetadata = this.createNotebookKernelMetadataFromPreferredKernel(preferredKernel);
+        //     if (preferredKernelMetadata) {
+        //         mapped.splice(0, 0, preferredKernelMetadata);
+        //     } else if (indexOfKernelMatchingDocumentLanguage >= 0) {
+        //         const kernel = kernels[indexOfKernelMatchingDocumentLanguage];
+        //         mapped.splice(
+        //             indexOfKernelMatchingDocumentLanguage,
+        //             1,
+        //             new VSCodeNotebookKernelMetadata(
+        //                 kernel.label,
+        //                 kernel.description || '',
+        //                 kernel.detail || '',
+        //                 kernel.selection,
+        //                 true,
+        //                 this.kernelProvider,
+        //                 this.notebook
+        //             )
+        //         );
+        //     }
+        // }
+        // return mapped;
     }
-    private createNotebookKernelMetadataFromPreferredKernel(
-        preferredKernel?: KernelConnectionMetadata
-    ): VSCodeNotebookKernelMetadata | undefined {
-        if (!preferredKernel) {
-            return;
-        } else if (preferredKernel.kind === 'startUsingDefaultKernel') {
-            return;
-        } else if (preferredKernel.kind === 'startUsingPythonInterpreter') {
-            return new VSCodeNotebookKernelMetadata(
-                preferredKernel.interpreter.displayName || preferredKernel.interpreter.path,
-                '',
-                preferredKernel.interpreter.path,
-                preferredKernel,
-                true,
-                this.kernelProvider,
-                this.notebook
-            );
-        } else if (preferredKernel.kind === 'connectToLiveKernel') {
-            return new VSCodeNotebookKernelMetadata(
-                preferredKernel.kernelModel.display_name || preferredKernel.kernelModel.name,
-                '',
-                preferredKernel.kernelModel.name,
-                preferredKernel,
-                true,
-                this.kernelProvider,
-                this.notebook
-            );
-        } else {
-            return new VSCodeNotebookKernelMetadata(
-                preferredKernel.kernelSpec.display_name,
-                '',
-                preferredKernel.kernelSpec.name,
-                preferredKernel,
-                true,
-                this.kernelProvider,
-                this.notebook
-            );
-        }
-    }
+    // private createNotebookKernelMetadataFromPreferredKernel(
+    //     preferredKernel?: KernelConnectionMetadata
+    // ): VSCodeNotebookKernelMetadata | undefined {
+    //     if (!preferredKernel) {
+    //         return;
+    //     } else if (preferredKernel.kind === 'startUsingDefaultKernel') {
+    //         return;
+    //     } else if (preferredKernel.kind === 'startUsingPythonInterpreter') {
+    //         return new VSCodeNotebookKernelMetadata(
+    //             preferredKernel.interpreter.displayName || preferredKernel.interpreter.path,
+    //             '',
+    //             preferredKernel.interpreter.path,
+    //             preferredKernel,
+    //             true,
+    //             this.kernelProvider,
+    //             this.notebook
+    //         );
+    //     } else if (preferredKernel.kind === 'connectToLiveKernel') {
+    //         return new VSCodeNotebookKernelMetadata(
+    //             preferredKernel.kernelModel.display_name || preferredKernel.kernelModel.name,
+    //             '',
+    //             preferredKernel.kernelModel.name,
+    //             preferredKernel,
+    //             true,
+    //             this.kernelProvider,
+    //             this.notebook
+    //         );
+    //     } else {
+    //         return new VSCodeNotebookKernelMetadata(
+    //             preferredKernel.kernelSpec.display_name,
+    //             '',
+    //             preferredKernel.kernelSpec.name,
+    //             preferredKernel,
+    //             true,
+    //             this.kernelProvider,
+    //             this.notebook
+    //         );
+    //     }
+    // }
     private createNotebookKernelMetadataFromPreferredRemoteKernel(
         preferredKernelInfo?:
             | LiveKernelConnectionMetadata
@@ -456,9 +469,14 @@ export class VSCodeKernelPickerProvider implements NotebookKernelProvider {
         const notebook = await this.notebookProvider.getOrCreateNotebook({
             resource: document.uri,
             identity: document.uri,
-            getOnly: true
+            getOnly: kernel.selection.kind !== 'connectToLiveKernel'
         });
-
+        if (kernel.selection.kind === 'connectToLiveKernel') {
+            const existingKernel1 = this.kernelProvider.get(document.uri);
+            if (existingKernel1 instanceof RemoteJupyterKernel) {
+                existingKernel1.hookUpKernel();
+            }
+        }
         // If we have a notebook, change its kernel now
         if (notebook) {
             if (!this.notebookKernelChangeHandled.has(notebook)) {

@@ -41,7 +41,6 @@ import { NotebookEditor } from '../../notebook/notebookEditor';
 import {
     IDataScienceErrorHandler,
     IJupyterSession,
-    INotebook,
     INotebookEditorProvider,
     INotebookExecutionLogger
 } from '../../types';
@@ -154,7 +153,11 @@ export class CellExecution {
         return new CellExecution(editor, cell, errorHandler, editorProvider, appService, isPythonKernelConnection);
     }
 
-    public async start(kernelPromise: Promise<IKernel>, notebook: INotebook) {
+    public async start(
+        kernelPromise: Promise<IKernel>,
+        jupyterSession: IJupyterSession,
+        loggers: INotebookExecutionLogger[]
+    ) {
         traceInfo(`Start cell execution for cell Index ${this.cell.index}`);
         if (!this.canExecuteCell()) {
             return;
@@ -175,7 +178,7 @@ export class CellExecution {
         // Begin the request that will modify our cell.
         kernelPromise
             .then((kernel) => this.handleKernelRestart(kernel))
-            .then(() => this.execute(notebook.session, notebook.getLoggers()))
+            .then(() => this.execute(jupyterSession, loggers))
             .catch((e) => this.completedWithErrors(e))
             .finally(() => this.dispose())
             .catch(noop);
@@ -201,6 +204,57 @@ export class CellExecution {
         }
         await this.completedDurToCancellation();
         this.dispose();
+    }
+    @swallowExceptions()
+    public async handleIOPub(
+        clearState: RefBool,
+        loggers: INotebookExecutionLogger[],
+        msg: KernelMessage.IIOPubMessage
+    ) {
+        // Let our loggers get a first crack at the message. They may change it
+        loggers.forEach((f) => (msg = f.preHandleIOPub ? f.preHandleIOPub(msg) : msg));
+
+        // tslint:disable-next-line:no-require-imports
+        const jupyterLab = require('@jupyterlab/services') as typeof import('@jupyterlab/services');
+
+        try {
+            if (jupyterLab.KernelMessage.isExecuteResultMsg(msg)) {
+                await this.handleExecuteResult(msg as KernelMessage.IExecuteResultMsg, clearState);
+            } else if (jupyterLab.KernelMessage.isExecuteInputMsg(msg)) {
+                await this.handleExecuteInput(msg as KernelMessage.IExecuteInputMsg, clearState, loggers);
+            } else if (jupyterLab.KernelMessage.isStatusMsg(msg)) {
+                // Status is handled by the result promise. While it is running we are active. Otherwise we're stopped.
+                // So ignore status messages.
+                const statusMsg = msg as KernelMessage.IStatusMsg;
+                this.handleStatusMessage(statusMsg, clearState);
+            } else if (jupyterLab.KernelMessage.isStreamMsg(msg)) {
+                await this.handleStreamMessage(msg as KernelMessage.IStreamMsg, clearState);
+            } else if (jupyterLab.KernelMessage.isDisplayDataMsg(msg)) {
+                await this.handleDisplayData(msg as KernelMessage.IDisplayDataMsg, clearState);
+            } else if (jupyterLab.KernelMessage.isUpdateDisplayDataMsg(msg)) {
+                await handleUpdateDisplayDataMessage(msg, this.editor);
+            } else if (jupyterLab.KernelMessage.isClearOutputMsg(msg)) {
+                await this.handleClearOutput(msg as KernelMessage.IClearOutputMsg, clearState);
+            } else if (jupyterLab.KernelMessage.isErrorMsg(msg)) {
+                await this.handleError(msg as KernelMessage.IErrorMsg, clearState);
+            } else if (jupyterLab.KernelMessage.isCommOpenMsg(msg)) {
+                // Noop.
+            } else if (jupyterLab.KernelMessage.isCommMsgMsg(msg)) {
+                // Noop.
+            } else if (jupyterLab.KernelMessage.isCommCloseMsg(msg)) {
+                // Noop.
+            } else {
+                traceWarning(`Unknown message ${msg.header.msg_type} : hasData=${'data' in msg.content}`);
+            }
+
+            // Set execution count, all messages should have it
+            if ('execution_count' in msg.content && typeof msg.content.execution_count === 'number') {
+                await updateCellExecutionCount(this.editor, this.cell, msg.content.execution_count);
+            }
+        } catch (err) {
+            // If not a restart error, then tell the subscriber
+            await this.completedWithErrors(err).then(noop, noop);
+        }
     }
     /**
      * This method is called when all execution has been completed (successfully or failed).
@@ -348,12 +402,12 @@ export class CellExecution {
         return code.trim().length > 0;
     }
 
-    private async execute(session: IJupyterSession, loggers: INotebookExecutionLogger[]) {
+    private async execute(jupyterSession: IJupyterSession, loggers: INotebookExecutionLogger[]) {
         const code = this.cell.document.getText();
-        return this.executeCodeCell(code, session, loggers);
+        return this.executeCodeCell(code, jupyterSession, loggers);
     }
 
-    private async executeCodeCell(code: string, session: IJupyterSession, loggers: INotebookExecutionLogger[]) {
+    private async executeCodeCell(code: string, jupyterSession: IJupyterSession, loggers: INotebookExecutionLogger[]) {
         // Generate metadata from our cell (some kernels expect this.)
         // tslint:disable-next-line: no-any
         const metadata: any = {
@@ -366,7 +420,7 @@ export class CellExecution {
             return this.completedSuccessfully().then(noop, noop);
         }
 
-        const request = session.requestExecute(
+        const request = jupyterSession.requestExecute(
             {
                 code,
                 silent: false,
@@ -404,7 +458,7 @@ export class CellExecution {
             (this.requestHandlerChain = this.requestHandlerChain.then(() =>
                 this.handleReply(clearState, msg).catch(noop)
             ));
-        request.onStdin = this.handleInputRequest.bind(this, session);
+        request.onStdin = this.handleInputRequest.bind(this, jupyterSession);
 
         // WARNING: Do not dispose `request`.
         // Even after request.done & execute_reply is sent we could have more messages coming from iopub.
@@ -428,57 +482,6 @@ export class CellExecution {
             cancelDisposable.dispose();
         }
     }
-    @swallowExceptions()
-    private async handleIOPub(
-        clearState: RefBool,
-        loggers: INotebookExecutionLogger[],
-        msg: KernelMessage.IIOPubMessage
-    ) {
-        // Let our loggers get a first crack at the message. They may change it
-        loggers.forEach((f) => (msg = f.preHandleIOPub ? f.preHandleIOPub(msg) : msg));
-
-        // tslint:disable-next-line:no-require-imports
-        const jupyterLab = require('@jupyterlab/services') as typeof import('@jupyterlab/services');
-
-        try {
-            if (jupyterLab.KernelMessage.isExecuteResultMsg(msg)) {
-                await this.handleExecuteResult(msg as KernelMessage.IExecuteResultMsg, clearState);
-            } else if (jupyterLab.KernelMessage.isExecuteInputMsg(msg)) {
-                await this.handleExecuteInput(msg as KernelMessage.IExecuteInputMsg, clearState, loggers);
-            } else if (jupyterLab.KernelMessage.isStatusMsg(msg)) {
-                // Status is handled by the result promise. While it is running we are active. Otherwise we're stopped.
-                // So ignore status messages.
-                const statusMsg = msg as KernelMessage.IStatusMsg;
-                this.handleStatusMessage(statusMsg, clearState);
-            } else if (jupyterLab.KernelMessage.isStreamMsg(msg)) {
-                await this.handleStreamMessage(msg as KernelMessage.IStreamMsg, clearState);
-            } else if (jupyterLab.KernelMessage.isDisplayDataMsg(msg)) {
-                await this.handleDisplayData(msg as KernelMessage.IDisplayDataMsg, clearState);
-            } else if (jupyterLab.KernelMessage.isUpdateDisplayDataMsg(msg)) {
-                await handleUpdateDisplayDataMessage(msg, this.editor);
-            } else if (jupyterLab.KernelMessage.isClearOutputMsg(msg)) {
-                await this.handleClearOutput(msg as KernelMessage.IClearOutputMsg, clearState);
-            } else if (jupyterLab.KernelMessage.isErrorMsg(msg)) {
-                await this.handleError(msg as KernelMessage.IErrorMsg, clearState);
-            } else if (jupyterLab.KernelMessage.isCommOpenMsg(msg)) {
-                // Noop.
-            } else if (jupyterLab.KernelMessage.isCommMsgMsg(msg)) {
-                // Noop.
-            } else if (jupyterLab.KernelMessage.isCommCloseMsg(msg)) {
-                // Noop.
-            } else {
-                traceWarning(`Unknown message ${msg.header.msg_type} : hasData=${'data' in msg.content}`);
-            }
-
-            // Set execution count, all messages should have it
-            if ('execution_count' in msg.content && typeof msg.content.execution_count === 'number') {
-                await updateCellExecutionCount(this.editor, this.cell, msg.content.execution_count);
-            }
-        } catch (err) {
-            // If not a restart error, then tell the subscriber
-            await this.completedWithErrors(err).then(noop, noop);
-        }
-    }
 
     private async addToCellData(
         output: nbformat.IExecuteResult | nbformat.IDisplayData | nbformat.IStream | nbformat.IError,
@@ -500,7 +503,7 @@ export class CellExecution {
         });
     }
 
-    private handleInputRequest(session: IJupyterSession, msg: KernelMessage.IStdinMessage) {
+    private handleInputRequest(jupyterSession: IJupyterSession, msg: KernelMessage.IStdinMessage) {
         // Ask the user for input
         if (msg.content && 'prompt' in msg.content) {
             const hasPassword = msg.content.password !== null && (msg.content.password as boolean);
@@ -511,7 +514,7 @@ export class CellExecution {
                     password: hasPassword
                 })
                 .then((v) => {
-                    session.sendInputReply(v || '');
+                    jupyterSession.sendInputReply({ value: v || '', status: 'ok' });
                 });
         }
     }

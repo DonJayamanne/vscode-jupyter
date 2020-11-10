@@ -253,6 +253,11 @@
         ],
         "commands": [
             {
+                "command": "jupyter.createnewremotenotebook",
+                "title": "Create Remote Notebook",
+                "category": "Jupyter"
+            },
+            {
                 "command": "jupyter.switchOffInsidersChannel",
                 "title": "%jupyter.command.jupyter.switchOffInsidersChannel.title%",
                 "category": "Jupyter"

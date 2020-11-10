@@ -41,7 +41,7 @@ import { RemoteFileSchemeManager } from './fileSchemeManager';
 // Key for our insecure connection global state
 const GlobalStateUserAllowsInsecureConnections = 'DataScienceAllowInsecureConnections';
 
-type ConnectionInfo = {
+export type ConnectionInfo = {
     settings: ServerConnection.ISettings;
     connection: IJupyterConnection;
     fileScheme: string;
@@ -116,16 +116,17 @@ export class JupyterServerConnectionService
 
     public findConnection(remoteUri: Uri): ConnectionInfo | undefined;
     public findConnection(jupyterConnectionId: string): ConnectionInfo | undefined;
-    public findConnection(idOrRemoteUri: Uri | string): ConnectionInfo | undefined {
-        const connectionId =
-            typeof idOrRemoteUri === 'string'
-                ? idOrRemoteUri
-                : Array.from(remoteConnections.keys()).find((id) => {
-                      const item = remoteConnections.get(id)!;
-                      return item.fileScheme === idOrRemoteUri.scheme;
-                  });
+    public findConnection(_idOrRemoteUri: Uri | string): ConnectionInfo | undefined {
+        // const connectionId =
+        //     typeof idOrRemoteUri === 'string'
+        //         ? idOrRemoteUri
+        //         : Array.from(remoteConnections.keys()).find((id) => {
+        //               const item = remoteConnections.get(id)!;
+        //               return item.fileScheme === idOrRemoteUri.scheme;
+        //           });
 
-        return connectionId ? remoteConnections.get(connectionId) : undefined;
+        // return connectionId ? remoteConnections.get(connectionId) : undefined;
+        return remoteConnections.size ? Array.from(remoteConnections.values())[0] : undefined;
     }
     public isConnected(remoteFileUri: Uri): boolean {
         return Array.from(remoteConnections.values()).some((item) => item.fileScheme === remoteFileUri.scheme);

@@ -89,7 +89,7 @@ export class JupyterSession extends BaseJupyterSession {
             }
 
             // Make sure it is idle before we return
-            await this.waitForIdleOnSession(newSession, timeoutMS);
+            // await this.waitForIdleOnSession(newSession, timeoutMS);
         } catch (exc) {
             if (exc instanceof JupyterWaitForIdleError) {
                 throw exc;
