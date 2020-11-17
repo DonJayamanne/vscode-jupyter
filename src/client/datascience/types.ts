@@ -420,6 +420,7 @@ export interface IJupyterKernelSpec {
     // tslint:disable-next-line: no-any
     readonly metadata?: Record<string, any> & { interpreter?: Partial<PythonEnvironment> };
     readonly argv: string[];
+    readonly interrupt_mode?: 'message' | 'signal';
 }
 
 export const INotebookImporter = Symbol('INotebookImporter');
