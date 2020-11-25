@@ -10,7 +10,7 @@ import { Event, EventEmitter } from 'vscode';
 import { IPythonExtensionChecker } from '../../api/types';
 import { traceError, traceInfo, traceWarning } from '../../common/logger';
 import { IFileSystem } from '../../common/platform/types';
-import { IProcessServiceFactory, ObservableExecutionResult } from '../../common/process/types';
+import { IProcessServiceFactory, IPythonExecutionFactory, ObservableExecutionResult } from '../../common/process/types';
 import { Resource } from '../../common/types';
 import { noop, swallowExceptions } from '../../common/utils/misc';
 import { captureTelemetry } from '../../telemetry';
@@ -59,7 +59,9 @@ export class KernelProcess implements IKernelProcess {
         private readonly fileSystem: IFileSystem,
         private readonly resource: Resource,
         private readonly extensionChecker: IPythonExtensionChecker,
-        private readonly kernelEnvVarsService: KernelEnvironmentVariablesService
+        private readonly kernelEnvVarsService: KernelEnvironmentVariablesService,
+        private readonly pythonExecutionFactory: IPythonExecutionFactory,
+        private readonly useLongRunningKernels?: boolean
     ) {
         this._kernelConnectionMetadata = kernelConnectionMetadata;
     }
@@ -252,7 +254,12 @@ export class KernelProcess implements IKernelProcess {
 
         // Use a daemon only if the python extension is available. It requires the active interpreter
         if (this.isPythonKernel && this.extensionChecker.isPythonExtensionInstalled) {
-            this.pythonKernelLauncher = new PythonKernelLauncherDaemon(this.daemonPool, this.kernelEnvVarsService);
+            this.pythonKernelLauncher = new PythonKernelLauncherDaemon(
+                this.daemonPool,
+                this.kernelEnvVarsService,
+                this.pythonExecutionFactory,
+                this.useLongRunningKernels
+            );
             const kernelDaemonLaunch = await this.pythonKernelLauncher.launch(
                 this.resource,
                 workingDirectory,
@@ -274,7 +281,8 @@ export class KernelProcess implements IKernelProcess {
             ]);
             exeObs = executionService.execObservable(executable, this.launchKernelSpec.argv.slice(1), {
                 env,
-                cwd: workingDirectory
+                cwd: workingDirectory,
+                detached: this.useLongRunningKernels
             });
         }
 

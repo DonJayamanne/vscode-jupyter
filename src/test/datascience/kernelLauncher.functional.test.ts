@@ -6,7 +6,7 @@ import { assert, use } from 'chai';
 
 import { KernelMessage } from '@jupyterlab/services';
 import * as uuid from 'uuid/v4';
-import { IProcessServiceFactory } from '../../client/common/process/types';
+import { IProcessServiceFactory, IPythonExecutionFactory } from '../../client/common/process/types';
 import { createDeferred } from '../../client/common/utils/async';
 import { JupyterZMQBinariesNotFoundError } from '../../client/datascience/jupyter/jupyterZMQBinariesNotFoundError';
 import { KernelDaemonPool } from '../../client/datascience/kernel-launcher/kernelDaemonPool';
@@ -26,6 +26,7 @@ import * as chaiAsPromised from 'chai-as-promised';
 import { IPythonExtensionChecker } from '../../client/api/types';
 import { IFileSystem } from '../../client/common/platform/types';
 import { KernelEnvironmentVariablesService } from '../../client/datascience/kernel-launcher/kernelEnvVarsService';
+import { IExperimentService } from '../../client/common/types';
 use(chaiAsPromised);
 
 suite('DataScience - Kernel Launcher', () => {
@@ -54,7 +55,9 @@ suite('DataScience - Kernel Launcher', () => {
             fileSystem,
             daemonPool,
             extensionChecker,
-            ioc.get<KernelEnvironmentVariablesService>(KernelEnvironmentVariablesService)
+            ioc.get<KernelEnvironmentVariablesService>(KernelEnvironmentVariablesService),
+            ioc.get<IPythonExecutionFactory>(IPythonExecutionFactory),
+            ioc.get<IExperimentService>(IExperimentService)
         );
         await ioc.activate();
         if (!ioc.mockJupyter) {

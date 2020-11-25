@@ -3,7 +3,7 @@
 
 import { assert } from 'chai';
 import { anything, deepEqual, instance, mock, when } from 'ts-mockito';
-import { IPythonExecutionService, ObservableExecutionResult } from '../../../client/common/process/types';
+import { IPythonExecutionFactory, IPythonExecutionService, ObservableExecutionResult } from '../../../client/common/process/types';
 import { ReadWrite } from '../../../client/common/types';
 import { KernelDaemonPool } from '../../../client/datascience/kernel-launcher/kernelDaemonPool';
 import { KernelEnvironmentVariablesService } from '../../../client/datascience/kernel-launcher/kernelEnvVarsService';
@@ -46,7 +46,9 @@ suite('DataScience - Kernel Launcher Daemon', () => {
         );
         launcher = new PythonKernelLauncherDaemon(
             instance(daemonPool),
-            instance(mock<KernelEnvironmentVariablesService>())
+            instance(mock<KernelEnvironmentVariablesService>()),
+            instance(mock<IPythonExecutionFactory>()),
+            false
         );
     });
     test('Does not support launching kernels if there is no -m in argv', async () => {

@@ -7,7 +7,7 @@ import * as portfinder from 'portfinder';
 import * as uuid from 'uuid/v4';
 import { IPythonExtensionChecker } from '../../../client/api/types';
 import { IFileSystem } from '../../../client/common/platform/types';
-import { IProcessServiceFactory } from '../../../client/common/process/types';
+import { IProcessServiceFactory, IPythonExecutionFactory } from '../../../client/common/process/types';
 import { createDeferred, sleep } from '../../../client/common/utils/async';
 import { KernelDaemonPool } from '../../../client/datascience/kernel-launcher/kernelDaemonPool';
 import { KernelEnvironmentVariablesService } from '../../../client/datascience/kernel-launcher/kernelEnvVarsService';
@@ -85,7 +85,9 @@ suite('DataScience raw kernel tests', () => {
             ioc.get<IFileSystem>(IFileSystem),
             undefined,
             ioc.get<IPythonExtensionChecker>(IPythonExtensionChecker),
-            ioc.get<KernelEnvironmentVariablesService>(KernelEnvironmentVariablesService)
+            ioc.get<KernelEnvironmentVariablesService>(KernelEnvironmentVariablesService),
+            ioc.get<IPythonExecutionFactory>(IPythonExecutionFactory),
+            false
         );
         await kernelProcess.launch(process.cwd());
         return createRawKernel(kernelProcess, uuid());

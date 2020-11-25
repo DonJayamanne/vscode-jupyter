@@ -11,10 +11,11 @@ import { promisify } from 'util';
 import * as uuid from 'uuid/v4';
 import { IPythonExtensionChecker } from '../../api/types';
 import { isTestExecution } from '../../common/constants';
+import { Experiments } from '../../common/experiments/groups';
 import { traceInfo } from '../../common/logger';
 import { IFileSystem } from '../../common/platform/types';
-import { IProcessServiceFactory } from '../../common/process/types';
-import { Resource } from '../../common/types';
+import { IProcessServiceFactory, IPythonExecutionFactory } from '../../common/process/types';
+import { IExperimentService, Resource } from '../../common/types';
 import { captureTelemetry } from '../../telemetry';
 import { Telemetry } from '../constants';
 import { KernelSpecConnectionMetadata, PythonKernelConnectionMetadata } from '../jupyter/kernels/types';
@@ -38,7 +39,11 @@ export class KernelLauncher implements IKernelLauncher {
         @inject(KernelDaemonPool) private readonly daemonPool: KernelDaemonPool,
         @inject(IPythonExtensionChecker) private readonly extensionChecker: IPythonExtensionChecker,
         @inject(KernelEnvironmentVariablesService)
-        private readonly kernelEnvVarsService: KernelEnvironmentVariablesService
+        private readonly kernelEnvVarsService: KernelEnvironmentVariablesService,
+        @inject(IPythonExecutionFactory)
+        private readonly pythonExecutionFactory: IPythonExecutionFactory,
+        @inject(IExperimentService)
+        private readonly experiments: IExperimentService
     ) {}
 
     // This function is public so it can be called when a test shuts down
@@ -88,7 +93,10 @@ export class KernelLauncher implements IKernelLauncher {
         resource: Resource,
         workingDirectory: string
     ): Promise<IKernelProcess> {
-        const connection = await this.getKernelConnection(kernelConnectionMetadata);
+        const [useLongRunningKernels, connection] = await Promise.all([
+            this.experiments.inExperiment(Experiments.LongRunningKernels),
+            this.getKernelConnection(kernelConnectionMetadata)
+        ]);
         const kernelProcess = new KernelProcess(
             this.processExecutionFactory,
             this.daemonPool,
@@ -97,7 +105,9 @@ export class KernelLauncher implements IKernelLauncher {
             this.fs,
             resource,
             this.extensionChecker,
-            this.kernelEnvVarsService
+            this.kernelEnvVarsService,
+            this.pythonExecutionFactory,
+            useLongRunningKernels
         );
         await kernelProcess.launch(workingDirectory);
         return kernelProcess;
