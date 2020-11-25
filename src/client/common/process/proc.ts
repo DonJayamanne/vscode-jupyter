@@ -73,7 +73,9 @@ export class ProcessService extends EventEmitter implements IProcessService {
                 }
             }
         };
-        this.processesToKill.add(disposable);
+        if (!options.detached) {
+            this.processesToKill.add(disposable);
+        }
 
         const output = new Observable<Output<string>>((subscriber) => {
             const disposables: IDisposable[] = [];
