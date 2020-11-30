@@ -64,7 +64,7 @@ export class WebServer implements IWebServer {
     public async launchServer(cwd: string, resourcesRoot: string, port: number = 0): Promise<number> {
         this.app = express();
         this.server = http.createServer(this.app);
-        this.io = socketIO(this.server);
+        this.io = (socketIO as any)(this.server);
         this.app.use(express.static(resourcesRoot, { cacheControl: false, etag: false }));
         this.app.use(express.static(cwd));
         this.app.use(cors());
@@ -84,11 +84,11 @@ export class WebServer implements IWebServer {
             }
         });
 
-        this.io.on('connection', (socket) => {
+        this.io!.on('connection', (socket) => {
             // Possible we close browser and reconnect, or hit refresh button.
             this.socket = socket;
             this.socketPromise.resolve(socket);
-            socket.on('fromClient', (data) => {
+            socket.on('fromClient', (data: any) => {
                 this._onDidReceiveMessage.fire(data);
             });
         });

@@ -27,12 +27,13 @@ import {
 import * as localize from './common/utils/localize';
 import { noop } from './common/utils/misc';
 import { registerTypes as variableRegisterTypes } from './common/variables/serviceRegistry';
-import { JUPYTER_OUTPUT_CHANNEL } from './datascience/constants';
+import { BACKGROUND_SERVICE_OUTPUT_CHANNEL, JUPYTER_OUTPUT_CHANNEL } from './datascience/constants';
 import { registerTypes as dataScienceRegisterTypes } from './datascience/serviceRegistry';
 import { IDataScience, IDebugLoggingManager } from './datascience/types';
 import { IServiceContainer, IServiceManager } from './ioc/types';
 import { addOutputChannelLogging, setLoggingLevel } from './logging';
 import { registerLoggerTypes } from './logging/serviceRegistry';
+import { registerBackgroundServices } from './server/serviceRegistry';
 import { setExtensionInstallTelemetryProperties } from './telemetry/extensionInstallTelemetry';
 import { registerTypes as commonRegisterTerminalTypes } from './terminals/serviceRegistry';
 
@@ -63,10 +64,16 @@ async function activateLegacy(
 ) {
     // register "services"
     const jupyterOutputChannel = window.createOutputChannel(localize.OutputChannelNames.jupyter());
+    const jupyterBackgroundServerOutputChannel = window.createOutputChannel('Jupyter Background Service');
     const standardOutputChannel = jupyterOutputChannel;
     addOutputChannelLogging(standardOutputChannel);
     serviceManager.addSingletonInstance<OutputChannel>(IOutputChannel, standardOutputChannel, STANDARD_OUTPUT_CHANNEL);
     serviceManager.addSingletonInstance<OutputChannel>(IOutputChannel, jupyterOutputChannel, JUPYTER_OUTPUT_CHANNEL);
+    serviceManager.addSingletonInstance<OutputChannel>(
+        IOutputChannel,
+        jupyterBackgroundServerOutputChannel,
+        BACKGROUND_SERVICE_OUTPUT_CHANNEL
+    );
 
     // Initialize logging to file if necessary as early as possible
     registerLoggerTypes(serviceManager);
@@ -115,6 +122,7 @@ async function activateLegacy(
     // Register datascience types after experiments have loaded.
     // To ensure we can register types based on experiments.
     dataScienceRegisterTypes(serviceManager, useVSCodeNotebookAPI, inCustomEditorApiExperiment);
+    registerBackgroundServices(serviceManager);
 
     // Language feature registrations.
     activationRegisterTypes(serviceManager);
