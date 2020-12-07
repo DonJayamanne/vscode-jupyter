@@ -42,6 +42,9 @@ export class KernelProcess implements IKernelProcess {
     private get isPythonKernel(): boolean {
         return isPythonKernelConnection(this.kernelConnectionMetadata);
     }
+    public get pid(): number | undefined {
+        return this._process?.pid;
+    }
     private _process?: ChildProcess;
     private exitEvent = new EventEmitter<{ exitCode?: number; reason?: string }>();
     private pythonKernelLauncher?: PythonKernelLauncherDaemon;

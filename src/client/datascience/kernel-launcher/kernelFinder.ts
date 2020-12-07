@@ -91,13 +91,10 @@ export class KernelFinder implements IKernelFinder {
     // Search all our local file system locations for installed kernel specs and return them
     @captureTelemetry(Telemetry.KernelListingPerf)
     public async listKernelSpecs(resource: Resource): Promise<IJupyterKernelSpec[]> {
-        if (!resource) {
-            // We need a resource to search for related kernel specs
-            return [];
-        }
-
         // Get an id for the workspace folder, if we don't have one, use the fsPath of the resource
-        const workspaceFolderId = this.workspaceService.getWorkspaceFolderIdentifier(resource, resource.fsPath);
+        const workspaceFolderId = resource
+            ? this.workspaceService.getWorkspaceFolderIdentifier(resource, resource.fsPath)
+            : '';
 
         // If we have not already searched for this resource, then generate the search
         if (!this.workspaceToKernels.has(workspaceFolderId)) {

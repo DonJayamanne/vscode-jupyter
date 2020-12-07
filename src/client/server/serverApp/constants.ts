@@ -2,7 +2,8 @@
 // Licensed under the MIT License.
 
 export enum Routes {
-    getKernelSpecs = '/api/kernelSpecs'
+    getKernelSpecs = '/api/kernelSpecs',
+    spawnRawKernelProcess = '/api/kernels/raw'
 }
 
 export enum MessagePrefixes {

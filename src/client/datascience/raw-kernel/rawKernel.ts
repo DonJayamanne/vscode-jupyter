@@ -3,7 +3,6 @@
 import { Kernel, KernelMessage, ServerConnection } from '@jupyterlab/services';
 // tslint:disable: no-any no-require-imports
 import cloneDeep = require('lodash/cloneDeep');
-import * as uuid from 'uuid/v4';
 import { isTestExecution } from '../../common/constants';
 import { traceError } from '../../common/logger';
 import { IDisposable } from '../../common/types';
@@ -278,7 +277,7 @@ export function createRawKernel(kernelProcess: IKernelProcess, clientId: string)
             clientId,
             handleComms: true
         },
-        uuid()
+        kernelProcess.pid! // Use process id as the kernel id.
     );
 
     // Use this real kernel in result.

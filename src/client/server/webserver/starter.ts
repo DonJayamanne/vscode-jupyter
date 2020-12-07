@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-import { spawn } from 'child_process';
+import { fork } from 'child_process';
 import { inject, injectable, named } from 'inversify';
 import * as util from 'util';
 import { Memento } from 'vscode';
@@ -69,10 +69,10 @@ export class JupyterWebServerStarter implements IAsyncDisposable {
             // Next start the real background process & pass the address of our server.
             // When the background process has started, it can send back information via the simple web server.
             try {
-                const proc = spawn(process.execPath, [BackgroundServerModule], {
+                const proc = fork(BackgroundServerModule, {
                     detached: true,
                     cwd: EXTENSION_ROOT_DIR,
-                    // execArgv: [],
+                    execArgv: [],
                     env: {
                         ...process.env,
                         ELECTRON_RUN_AS_NODE: '1',
@@ -82,8 +82,7 @@ export class JupyterWebServerStarter implements IAsyncDisposable {
                         VSCODE_PID: undefined,
                         VSCODE_HANDLES_UNCAUGHT_ERRORS: undefined,
                         VSCODE_LOG_STACK: undefined
-                    },
-                    stdio: 'ignore'
+                    }
                 });
                 proc.unref();
                 this.jupyterOutput.appendLine(`Forked process ${proc.pid}`);
