@@ -1819,6 +1819,7 @@
         "get-port": "^3.2.0",
         "glob": "^7.1.2",
         "hash.js": "^1.1.7",
+        "http-proxy-middleware": "^1.0.6",
         "iconv-lite": "^0.4.21",
         "inversify": "^4.11.1",
         "is-online": "^8.2.1",
@@ -1875,7 +1876,7 @@
         "vscode-tas-client": "^0.1.4",
         "vsls": "^0.3.1291",
         "winston": "^3.2.1",
-        "ws": "^6.0.0",
+        "ws": "^6.2.1",
         "zeromq": "^6.0.0-beta.6"
     },
     "devDependencies": {

@@ -136,9 +136,9 @@ export class JupyterSession extends BaseJupyterSession {
     }
 
     protected startRestartSession() {
-        if (!this.restartSessionPromise && this.session && this.contentsManager) {
-            this.restartSessionPromise = this.createRestartSession(this.kernelConnectionMetadata, this.session);
-        }
+        // if (!this.restartSessionPromise && this.session && this.contentsManager) {
+        // this.restartSessionPromise = this.createRestartSession(this.kernelConnectionMetadata, this.session);
+        // }
     }
 
     private async createBackingFile(): Promise<Contents.IModel> {

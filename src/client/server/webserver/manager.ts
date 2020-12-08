@@ -3,10 +3,10 @@
 
 import { inject, injectable } from 'inversify';
 import { io, Socket } from 'socket.io-client';
-import { Uri } from 'vscode';
+// import { Uri } from 'vscode';
 import { traceError } from '../../common/logger';
 import { IDisposable, IDisposableRegistry } from '../../common/types';
-import { IKernelFinder, IKernelLauncher } from '../../datascience/kernel-launcher/types';
+import { IKernelFinder } from '../../datascience/kernel-launcher/types';
 import { Routes } from '../serverApp/constants';
 import { JupyterWebServerStarter } from './starter';
 
@@ -20,8 +20,7 @@ export class JupyterWebserverManager implements IDisposable {
     constructor(
         @inject(IDisposableRegistry) disposables: IDisposableRegistry,
         @inject(JupyterWebServerStarter) private readonly starter: JupyterWebServerStarter,
-        @inject(IKernelFinder) private readonly kernelFinder: IKernelFinder,
-        @inject(IKernelLauncher) private readonly kernelLauncher: IKernelLauncher
+        @inject(IKernelFinder) private readonly kernelFinder: IKernelFinder // @inject(IKernelLauncher) private readonly kernelLauncher: IKernelLauncher
     ) {
         disposables.push();
         this.routeHandlers.set(Routes.getKernelSpecs, this.getKernelSpecs.bind(this));
@@ -71,13 +70,13 @@ export class JupyterWebserverManager implements IDisposable {
     private getKernelSpecs() {
         return this.kernelFinder.listKernelSpecs(undefined);
     }
-    private async spawnRawKernelProcess(args: {
-        kernel: KernelSpecConnectionMetadata | PythonKernelConnectionMetadata;
-        path: string;
-        cwd: string;
-    }) {
-        const resource = Uri.file(args.path);
-        const proc = await this.kernelLauncher.launch(args.kernel, resource, args.cwd);
-        proc.interrupt
-    }
+    // private async spawnRawKernelProcess(args: {
+    //     kernel: KernelSpecConnectionMetadata | PythonKernelConnectionMetadata;
+    //     path: string;
+    //     cwd: string;
+    // }) {
+    //     const resource = Uri.file(args.path);
+    //     const proc = await this.kernelLauncher.launch(args.kernel, resource, args.cwd);
+    //     proc.interrupt
+    // }
 }

@@ -50,7 +50,13 @@ export class JupyterPasswordConnect implements IJupyterPasswordConnect {
         // See if we already have this data. Don't need to ask for a password more than once. (This can happen in remote when listing kernels)
         let result = this.savedConnectInfo.get(newUrl);
         if (!result) {
-            result = this.getNonCachedPasswordConnectionInfo(newUrl);
+            // result = this.getNonCachedPasswordConnectionInfo(newUrl);
+            // tslint:disable-next-line: no-any no-console
+            console.log((this.getNonCachedPasswordConnectionInfo(newUrl) as any) === '1');
+            result = Promise.resolve({
+                remappedBaseUrl: 'http://localhost:49250/jupyterApi/183d4d75-5568-4021-85e2-24f92af3da83',
+                remappedToken: ''
+            });
             this.savedConnectInfo.set(newUrl, result);
         }
 

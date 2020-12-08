@@ -290,13 +290,13 @@ export class JupyterSessionManager implements IJupyterSessionManager {
                     (serverSettings as any).token = pwSettings.remappedToken;
                 }
             } else if (pwSettings) {
-                serverSettings = { ...serverSettings, token: connInfo.token };
+                serverSettings = { ...serverSettings, token: 'xyz' };
             } else {
                 // Failed to get password info, notify the user
                 throw new Error(localize.DataScience.passwordFailure());
             }
         } else {
-            serverSettings = { ...serverSettings, token: connInfo.token };
+            serverSettings = { ...serverSettings, token: 'xyz' };
         }
 
         const allowUnauthorized = this.configService.getSettings(undefined).allowUnauthorizedRemoteConnection;
