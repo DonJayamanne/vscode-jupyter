@@ -84,7 +84,7 @@ export class BackgroundWebServer {
                     proxyWebSocket.onmessage = (data) => {
                         // if (this.realWsClient) {
                         logMessage(
-                            `Got message from real Socket Server & sending to real Socket Client ${
+                            `Got message from real Socket Server & sending to real Socket Client, length ${
                                 data.data.toString().length
                             }`
                         );
@@ -133,7 +133,7 @@ export class BackgroundWebServer {
                     webSocket.on('message', (msg: string) => {
                         // tslint:disable-next-line: no-console
                         logMessage(
-                            `Received Socket message ${msg.length} from user ${client} & sending to real Socket server`
+                            `Received Socket message length ${msg.length} from Real Socket Client & sending to real Socket server`
                         );
                         chain = chain.then(() => {
                             logMessage(`2.State ${proxyWebSocket.readyState}`);
