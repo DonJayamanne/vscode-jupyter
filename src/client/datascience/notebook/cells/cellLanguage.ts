@@ -2,12 +2,12 @@
 // Licensed under the MIT License.
 
 import { inject, injectable } from 'inversify';
-import { languages, notebook, NotebookCellData, window, workspace, WorkspaceEdit } from 'vscode';
+import { languages, notebook, NotebookCellData, TextDocument, window, workspace, WorkspaceEdit } from 'vscode';
 import { IExtensionSyncActivationService } from '../../../activation/types';
 import { IDisposableRegistry } from '../../../common/types';
 import { isJupyterKernel } from '../helpers/helpers';
 
-const CellMagicLanguages = new Map<string, string>([
+const CellMagicLanguagesMap = new Map<string, string>([
     ['html', 'html'],
     ['svg', 'xml'],
     ['js', 'javascript'],
@@ -23,6 +23,10 @@ const CellMagicLanguages = new Map<string, string>([
     ['script', 'shellscript'],
     ['sh', 'shellscript']
 ]);
+const CellMagicLanguages = new Set(CellMagicLanguagesMap.values());
+
+const cellsForWhichLanguageWasChanged = new WeakSet<TextDocument>();
+
 @injectable()
 export class CellMagicMonitor implements IExtensionSyncActivationService {
     constructor(@inject(IDisposableRegistry) private readonly disposables: IDisposableRegistry) {}
@@ -41,17 +45,33 @@ export class CellMagicMonitor implements IExtensionSyncActivationService {
                     return;
                 }
                 const cellMagic = e.document.lineAt(0).text.trim();
+                // If there are no cell languages, then revert the language to Python.
                 if (!cellMagic.startsWith('%%')) {
+                    if (
+                        CellMagicLanguages.has(e.document.languageId) &&
+                        cellsForWhichLanguageWasChanged.has(e.document)
+                    ) {
+                        await languages.setTextDocumentLanguage(e.document, 'python');
+                    }
                     return;
                 }
                 const magic = cellMagic.substring(2).trim();
-                const newLanguage = CellMagicLanguages.get(magic);
+                const newLanguage = CellMagicLanguagesMap.get(magic);
                 if (!newLanguage) {
+                    // If we don't recognize this magic cell language then revert to Python.
+                    if (
+                        CellMagicLanguages.has(e.document.languageId) &&
+                        cellsForWhichLanguageWasChanged.has(e.document)
+                    ) {
+                        await languages.setTextDocumentLanguage(e.document, 'python');
+                        return;
+                    }
                     return;
                 }
                 if (e.document.languageId.toLowerCase() === newLanguage.toLowerCase()) {
                     return;
                 }
+                cellsForWhichLanguageWasChanged.add(e.document);
                 await languages.setTextDocumentLanguage(e.document, newLanguage);
             },
             this,
