@@ -12,6 +12,9 @@ RUN if [ "${INSTALL_NODE}" = "true" ]; then su vscode -c "umask 0002 && . /usr/l
 COPY environment.yml* .devcontainer/noop.txt /tmp/conda-tmp/
 RUN if [ -f "/tmp/conda-tmp/environment.yml" ]; then /opt/conda/bin/conda env update -n base -f /tmp/conda-tmp/environment.yml; fi \
     && rm -rf /tmp/conda-tmp
+RUN /opt/conda/bin/conda install -y -c conda-forge bash jupyter jupyterlab
+RUN /opt/conda/bin/conda install -y -c conda-forge xeus-cling xtensor xwidgets
+RUN mkdir ./notebooks
 
 # [Optional] Uncomment to install a different version of Python than the default
 # RUN conda install -y python=3.6 \
