@@ -1,3 +1,4 @@
+
 declare module 'ansi-to-html' {
     export = ansiToHtml;
     class ansiToHtml {
