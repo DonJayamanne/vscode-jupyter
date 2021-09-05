@@ -434,7 +434,6 @@ export function findPreferredKernel(
                           (notebookMetadata?.kernelspec?.language as string) || notebookMetadata?.language_info?.name
                       )?.toLowerCase();
         }
-        let bestScore = -1;
 
         // Find index of the kernelspec that matches the preferred interpreter.
         const preferredInterpreterKernelSpecIndex = preferredInterpreter
@@ -452,6 +451,17 @@ export function findPreferredKernel(
             : -1;
 
         traceInfoIf(isCI, `preferredInterpreterKernelSpecIndex = ${preferredInterpreterKernelSpecIndex}`);
+        // If this is a notebook, and we don't have any metadata (or no kernel spec),
+        // Then just return the preferred interpreter as the kernel spec.
+        if (
+            getResourceType(resource) === 'notebook' &&
+            !notebookMetadata?.kernelspec &&
+            preferredInterpreterKernelSpecIndex >= 0
+        ) {
+            return kernels[preferredInterpreterKernelSpecIndex];
+        }
+
+        let bestScore = -1;
 
         for (let i = 0; kernels && i < kernels?.length; i = i + 1) {
             const metadata = kernels[i];
