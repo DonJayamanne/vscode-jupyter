@@ -11,7 +11,7 @@ import {
 } from 'vscode-jsonrpc/node';
 
 import { EXTENSION_ROOT_DIR } from '../../constants';
-import { traceDecorators, traceError } from '../logger';
+import { traceDecorators, traceError, traceVerbose } from '../logger';
 import { IPlatformService } from '../platform/types';
 import { IDisposable, IDisposableRegistry } from '../types';
 import { createDeferred } from '../utils/async';
@@ -32,7 +32,7 @@ export class PythonDaemonFactory {
         if (!options.pythonPath) {
             throw new Error('options.pythonPath is empty when it shoud not be');
         }
-        this.pythonPath = options.pythonPath;
+        this.pythonPath = typeof options.pythonPath === 'string' ? options.pythonPath : options.pythonPath.path;
         // Setup environment variables for the daemon.
         // The daemon must have access to the Python Module that'll run the daemon
         // & also access to a Python package used for the JSON rpc comms.
@@ -51,7 +51,7 @@ export class PythonDaemonFactory {
     @traceDecorators.error('Failed to create daemon')
     public async createDaemonService<T extends IPythonDaemonExecutionService | IDisposable>(): Promise<T> {
         // Add '--log-file=/Users/donjayamanne/Desktop/Development/vsc/pythonVSCode/daaemon.log' to log to a file.
-        const loggingArgs: string[] = ['-v']; // Log information messages or greater (see daemon.__main__.py for options).
+        const loggingArgs: string[] = ['-v', '--log-file=C:/Development/vsc/vscode-jupyter/log.log']; // Log information messages or greater (see daemon.__main__.py for options).
 
         const args = (this.options.daemonModule ? [`--daemon-module=${this.options.daemonModule}`] : []).concat(
             loggingArgs
@@ -69,10 +69,15 @@ export class PythonDaemonFactory {
 
         connection.listen();
         let stdError = '';
+        let stdOut = '';
         let procEndEx: Error | undefined;
         daemonProc.proc.stderr?.on('data', (data: string | Buffer) => {
             data = typeof data === 'string' ? data : data.toString('utf8');
             stdError += data;
+        });
+        daemonProc.proc.stdout?.on('data', (data: string | Buffer) => {
+            data = typeof data === 'string' ? data : data.toString('utf8');
+            stdOut += data;
         });
         daemonProc.proc.on('error', (ex) => (procEndEx = ex));
 
@@ -94,6 +99,7 @@ export class PythonDaemonFactory {
             throw new Error(`Daemon class ${cls.name} must inherit BasePythonDaemon.`);
         } catch (ex) {
             traceError('Failed to start the Daemon, StdErr: ', stdError);
+            traceError('Failed to start the Daemon, stdOut: ', stdOut);
             traceError('Failed to start the Daemon, ProcEndEx', procEndEx || ex);
             traceError('Failed  to start the Daemon, Ex', ex);
             throw ex;
@@ -118,7 +124,7 @@ export class PythonDaemonFactory {
         // If we don't get a reply to the ping in 5 seconds assume it will never work. Bomb out.
         // At this point there should be some information logged in stderr of the daemon process.
         const fail = createDeferred<{ pong: string }>();
-        const timer = setTimeout(() => fail.reject(new Error('Timeout waiting for daemon to start')), 5_000);
+        const timer = setTimeout(() => fail.reject(new Error('Timeout waiting for daemon to start')), 20_000);
         const request = new RequestType<{ data: string }, { pong: string }, void>('ping');
         // Check whether the daemon has started correctly, by sending a ping.
         const result = await Promise.race([fail.promise, connection.sendRequest(request, { data: 'hello' })]);
@@ -126,5 +132,6 @@ export class PythonDaemonFactory {
         if (result.pong !== 'hello') {
             throw new Error(`Daemon did not reply to the ping, received: ${result.pong}`);
         }
+        traceVerbose('Daemon is alive');
     }
 }

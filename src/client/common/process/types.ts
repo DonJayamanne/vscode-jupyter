@@ -64,7 +64,7 @@ export interface IProcessServiceFactory {
 export const IPythonExecutionFactory = Symbol('IPythonExecutionFactory');
 export type ExecutionFactoryCreationOptions = {
     resource?: Uri;
-    pythonPath?: string;
+    pythonPath?: PythonEnvironment;
 };
 export function isDaemonPoolCreationOption(
     options: PooledDaemonExecutionFactoryCreationOptions | DedicatedDaemonExecutionFactoryCreationOptions

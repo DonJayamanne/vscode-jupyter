@@ -9,6 +9,7 @@ import { getInterpreterInfo } from '../../pythonEnvironments/info/interpreter';
 import { traceError, traceInfo } from '../logger';
 import * as internalPython from './internal/python';
 import { ExecutionResult, IProcessService, ShellOptions, SpawnOptions } from './types';
+import { compare, SemVer } from 'semver';
 
 class PythonEnvironment {
     private cachedInterpreterInformation: InterpreterInformation | undefined | null = null;
@@ -108,11 +109,18 @@ export function createPythonEnv(
     return new PythonEnvironment(pythonPath, deps);
 }
 
+export function condaVersionSupportsLiveStreaming(version?: SemVer): boolean {
+    if (!version) {
+        return false;
+    }
+    return compare(version.raw, '4.9.0') >= 0;
+}
 export function createCondaEnv(
     condaFile: string,
     condaInfo: {
         name: string;
         path: string;
+        version?: SemVer;
     },
     pythonPath: string,
     // These are used to generate the deps.
@@ -125,15 +133,14 @@ export function createCondaEnv(
     } else {
         runArgs.push('-n', condaInfo.name);
     }
-    const pythonArgv = [condaFile, ...runArgs, 'python'];
+    const liveStreamArgs = condaVersionSupportsLiveStreaming(condaInfo.version)
+        ? ['--no-capture-output', '--live-stream']
+        : [];
+    const pythonArgv = [condaFile, ...runArgs, ...liveStreamArgs, 'python'];
     const deps = createDeps(
         async (filename) => fs.localFileExists(filename),
         pythonArgv,
-        // eslint-disable-next-line
-        // TODO: Use pythonArgv here once 'conda run' can be
-        // run without buffering output.
-        // See https://github.com/microsoft/vscode-python/issues/8473.
-        undefined,
+        pythonArgv,
         (file, args, opts) => procs.exec(file, args, opts),
         (command, opts) => procs.shellExec(command, opts)
     );

@@ -34,7 +34,7 @@ class InterpreterJupyterCommand implements IJupyterCommand {
             if (isActiveInterpreter) {
                 const svc = await pythonExecutionFactory.createDaemon<IPythonDaemonExecutionService>({
                     daemonModule: JupyterDaemonModule,
-                    pythonPath: interpreter!.path
+                    pythonPath: interpreter
                 });
 
                 // If we're using this command to start notebook, then ensure the daemon can start a notebook inside it.
