@@ -46,7 +46,6 @@ import { chainable } from '../platform/common/utils/decorators';
 import { InteractiveCellResultError } from '../platform/errors/interactiveCellResultError';
 import { DataScience } from '../platform/common/utils/localize';
 import { createDeferred, Deferred } from '../platform/common/utils/async';
-import { IServiceContainer } from '../platform/ioc/types';
 import { SysInfoReason } from '../messageTypes';
 import { createOutputWithErrorMessageForDisplay } from '../platform/errors/errorUtils';
 import { INotebookExporter } from '../kernels/jupyter/types';
@@ -54,11 +53,13 @@ import { IExportDialog, ExportFormat } from '../notebooks/export/types';
 import { generateCellsFromNotebookDocument } from './editor-integration/cellFactory';
 import { CellMatcher } from './editor-integration/cellMatcher';
 import { IInteractiveWindowLoadable, IInteractiveWindowDebugger, IInteractiveWindowDebuggingManager } from './types';
-import { generateInteractiveCode } from './helpers';
-import { IControllerSelection, IVSCodeNotebookController } from '../notebooks/controllers/types';
+import { generateInteractiveCode, getInteractiveCellMetadata } from './helpers';
+import {
+    IControllerRegistration,
+    IControllerSelection,
+    IVSCodeNotebookController
+} from '../notebooks/controllers/types';
 import { DisplayOptions } from '../kernels/displayOptions';
-import { getInteractiveCellMetadata } from './helpers';
-import { KernelConnector } from '../notebooks/controllers/kernelConnector';
 import { getFilePath } from '../platform/common/platform/fs-paths';
 import {
     ICodeGeneratorFactory,
@@ -121,7 +122,6 @@ export class InteractiveWindow implements IInteractiveWindowLoadable {
         private mode: InteractiveWindowMode,
         private readonly exportDialog: IExportDialog,
         private readonly notebookControllerSelection: IControllerSelection,
-        private readonly serviceContainer: IServiceContainer,
         private readonly interactiveWindowDebugger: IInteractiveWindowDebugger | undefined,
         private readonly errorHandler: IDataScienceErrorHandler,
         preferredController: IVSCodeNotebookController | undefined,
@@ -131,7 +131,8 @@ export class InteractiveWindow implements IInteractiveWindowLoadable {
         private readonly codeGeneratorFactory: ICodeGeneratorFactory,
         private readonly storageFactory: IGeneratedCodeStorageFactory,
         private readonly debuggingManager: IInteractiveWindowDebuggingManager,
-        private readonly isWebExtension: boolean
+        private readonly isWebExtension: boolean,
+        private readonly controllerRegistrations: IControllerRegistration
     ) {
         // Set our owner and first submitter
         if (this._owner) {
@@ -200,14 +201,12 @@ export class InteractiveWindow implements IInteractiveWindowLoadable {
             };
             // When connecting, we need to update the sys info message
             this.updateSysInfoMessage(this.getSysInfoMessage(metadata, SysInfoReason.Start), false, sysInfoCell);
-            const kernel = await KernelConnector.connectToKernel(
-                controller,
-                metadata,
-                this.serviceContainer,
-                { resource: this.owner, notebook: this.notebookDocument },
+            const vscController = Array.from(this.controllerRegistrations.values).find(
+                (item) => item.controller.id === controller.id
+            )!;
+            const kernel = await vscController.connectToKernel(
+                { notebook: this.notebookDocument, resource: this.owner },
                 new DisplayOptions(false),
-                this.internalDisposables,
-                'jupyterExtension',
                 onStartKernel
             );
             this.currentKernelInfo.controller = kernel.controller;

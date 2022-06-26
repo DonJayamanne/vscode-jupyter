@@ -242,9 +242,15 @@ export class ControllerRegistration implements IControllerRegistration {
             );
             if (liveController) {
                 this.kernelProvider.updateKernel(kernel, liveController.connection, liveController.controller);
+
+                const notebookEditor = this.notebook.notebookEditors.find(
+                    (item) => item.notebook.uri.toString() === kernel.uri.toString()
+                );
                 await this.commandManager.executeCommand('notebook.selectKernel', {
                     id: liveController.id,
-                    extension: JVSC_EXTENSION_ID
+                    extension: JVSC_EXTENSION_ID,
+                    // Pass in the notebook editor as well, in case the notebook isn't active.
+                    notebookEditor
                 });
             } else {
                 traceWarning(

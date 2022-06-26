@@ -182,7 +182,6 @@ export class InteractiveWindowProvider
                 mode,
                 this.serviceContainer.get<IExportDialog>(IExportDialog),
                 this.serviceContainer.get<IControllerSelection>(IControllerSelection),
-                this.serviceContainer,
                 this.serviceContainer.tryGet<IInteractiveWindowDebugger>(IInteractiveWindowDebugger),
                 this.serviceContainer.get<IDataScienceErrorHandler>(IDataScienceErrorHandler),
                 preferredController,
@@ -192,7 +191,8 @@ export class InteractiveWindowProvider
                 this.serviceContainer.get<ICodeGeneratorFactory>(ICodeGeneratorFactory),
                 this.serviceContainer.get<IGeneratedCodeStorageFactory>(IGeneratedCodeStorageFactory),
                 this.serviceContainer.get<IInteractiveWindowDebuggingManager>(IInteractiveWindowDebuggingManager),
-                this.serviceContainer.get<boolean>(IsWebExtension)
+                this.serviceContainer.get<boolean>(IsWebExtension),
+                this.serviceContainer.get<IControllerRegistration>(IControllerRegistration)
             );
             this._windows.push(result);
 

@@ -3,9 +3,9 @@
 // Licensed under the MIT License.
 
 import * as vscode from 'vscode';
-import { KernelConnectionMetadata } from '../../kernels/types';
+import { IKernel, KernelAction, KernelActionSource, KernelConnectionMetadata } from '../../kernels/types';
 import { JupyterNotebookView, InteractiveWindowView } from '../../platform/common/constants';
-import { IDisposable, Resource } from '../../platform/common/types';
+import { IDisplayOptions, IDisposable, Resource } from '../../platform/common/types';
 
 export const InteractiveControllerIdSuffix = ' (Interactive)';
 
@@ -29,6 +29,12 @@ export interface IVSCodeNotebookController extends IDisposable {
     asWebviewUri(localResource: vscode.Uri): vscode.Uri;
     isAssociatedWithDocument(notebook: vscode.NotebookDocument): boolean;
     updateConnection(connection: KernelConnectionMetadata): void;
+    connectToKernel(
+        notebookResource: { resource?: vscode.Uri; notebook: vscode.NotebookDocument },
+        options: IDisplayOptions,
+        onAction?: (action: KernelAction, kernel: IKernel) => void,
+        onActionCompleted?: (action: KernelAction, actionSource: KernelActionSource, kernel: IKernel) => Promise<void>
+    ): Promise<IKernel>;
 }
 export const IControllerRegistration = Symbol('IControllerRegistration');
 
