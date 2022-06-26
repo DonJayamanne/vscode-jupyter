@@ -187,7 +187,7 @@ export class VSCodeNotebookController implements Disposable, IVSCodeNotebookCont
 
         // Fill in extended info for our controller
         this.controller.interruptHandler = this.handleInterrupt.bind(this);
-    this.controller.description = getKernelConnectionPath(kernelConnection, this.workspace);
+        this.controller.description = getKernelConnectionPath(kernelConnection, this.workspace);
         this.controller.detail =
             kernelConnection.kind === 'connectToLiveRemoteKernel'
                 ? getRemoteKernelSessionInformation(kernelConnection)
@@ -199,6 +199,12 @@ export class VSCodeNotebookController implements Disposable, IVSCodeNotebookCont
         this.controller.onDidChangeSelectedNotebooks(this.onDidChangeSelectedNotebooks, this, this.disposables);
     }
     public updateConnection(kernelConnection: KernelConnectionMetadata) {
+        if (this.kernelConnection.id !== kernelConnection.id) {
+            throw new Error('Cannot update connection with a different KernelConnectionMetadata');
+        }
+        // Update the connection information, as its possible we have generated a whole new object.
+        // with more recent information about the remote kernel connection (Jupyter session info like activity date, # of connections) or the like.
+        this.kernelConnection = kernelConnection;
         if (kernelConnection.kind === 'connectToLiveRemoteKernel') {
             this.controller.detail = getRemoteKernelSessionInformation(kernelConnection);
         } else {
