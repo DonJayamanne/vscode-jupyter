@@ -237,6 +237,10 @@ export interface IKernelProvider extends IAsyncDisposable {
      * WARNING: If called with different options for same Notebook, old kernel associated with the Uri will be disposed.
      */
     getOrCreate(uri: Uri, options: KernelOptions): IKernel;
+    /**
+     * Updates the Kernel with a new Kernel Connection Metadata & a new Controller.
+     */
+    updateKernel(kernel: IKernel, metadata: KernelConnectionMetadata, controller: NotebookController): void;
 }
 
 export interface IRawConnection {

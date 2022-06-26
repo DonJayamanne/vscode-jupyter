@@ -7,7 +7,16 @@ import { getDisplayNameOrNameOfKernelConnection } from '../../kernels/helpers';
 import { ILocalResourceUriConverter } from '../../kernels/ipywidgets/types';
 import { computeServerId } from '../../kernels/jupyter/jupyterUtils';
 import { IJupyterServerUriStorage, IServerConnectionType } from '../../kernels/jupyter/types';
-import { IKernelProvider, isLocalConnection, isRemoteConnection, KernelConnectionMetadata } from '../../kernels/types';
+import {
+    IKernel,
+    IKernelProvider,
+    isLocalConnection,
+    isRemoteConnection,
+    KernelAction,
+    KernelActionSource,
+    KernelConnectionMetadata,
+    LiveRemoteKernelConnectionMetadata
+} from '../../kernels/types';
 import { IPythonExtensionChecker } from '../../platform/api/types';
 import {
     IVSCodeNotebook,
@@ -17,20 +26,22 @@ import {
     IApplicationShell
 } from '../../platform/common/application/types';
 import { isCancellationError } from '../../platform/common/cancellation';
-import { JupyterNotebookView, InteractiveWindowView } from '../../platform/common/constants';
+import { JupyterNotebookView, InteractiveWindowView, JVSC_EXTENSION_ID } from '../../platform/common/constants';
 import {
     IDisposableRegistry,
     IConfigurationService,
     IExtensionContext,
     IBrowserService
 } from '../../platform/common/types';
+import { swallowExceptions } from '../../platform/common/utils/decorators';
 import { IServiceContainer } from '../../platform/ioc/types';
-import { traceError } from '../../platform/logging';
+import { traceError, traceWarning } from '../../platform/logging';
 import { sendTelemetryEvent, Telemetry } from '../../telemetry';
 import { NotebookCellLanguageService } from '../languages/cellLanguageService';
 import { KernelFilterService } from './kernelFilter/kernelFilterService';
 import { IControllerRegistration, InteractiveControllerIdSuffix, IVSCodeNotebookController } from './types';
 import { VSCodeNotebookController } from './vscodeNotebookController';
+import * as path from '../../platform/vscode-path/path';
 
 /**
  * This class keeps track of registered controllers
@@ -131,7 +142,13 @@ export class ControllerRegistration implements IControllerRegistration {
                         this.browser,
                         this.extensionChecker,
                         this.resourceConverter,
-                        this.serviceContainer
+                        this.serviceContainer,
+                        async (action: KernelAction, actionSource: KernelActionSource, kernel: IKernel) => {
+                            if (action !== 'start' || actionSource !== 'jupyterExtension') {
+                                return;
+                            }
+                            await this.swapKernelSpecConnectionControllerWithLiveController(kernel);
+                        }
                     );
                     controller.onDidDispose(
                         () => {
@@ -180,6 +197,62 @@ export class ControllerRegistration implements IControllerRegistration {
     ): IVSCodeNotebookController | undefined {
         const id = this.getControllerId(metadata, notebookType);
         return this.registeredControllers.get(id);
+    }
+    @swallowExceptions()
+    private async swapKernelSpecConnectionControllerWithLiveController(kernel: IKernel) {
+        if (kernel.kernelConnectionMetadata.kind === 'startUsingRemoteKernelSpec') {
+            if (!kernel.session?.kernel?.id) {
+                return;
+            }
+            // Check if we have a controller registered for this live kernel session.
+            // If not, then create one.
+            // Next, then swap the metadata & controller in the kernel.
+            const liveKernelConnection: LiveRemoteKernelConnectionMetadata = {
+                kind: 'connectToLiveRemoteKernel',
+                baseUrl: kernel.kernelConnectionMetadata.baseUrl,
+                id: kernel.session.kernel.id,
+                kernelModel: {
+                    ...kernel.kernelConnectionMetadata.kernelSpec,
+                    model: {
+                        id: kernel.session.kernel.id,
+                        name: kernel.session.kernel.name,
+                        path: path.basename(kernel.uri.path),
+                        type: 'notebook',
+                        kernel: kernel.session.kernel.model
+                    },
+                    notebook: {
+                        path: path.basename(kernel.uri.path)
+                    },
+                    name: kernel.session.kernel.name,
+                    numberOfConnections: 1,
+                    lastActivityTime: new Date(Date.now()),
+                    id: kernel.session.kernel.id
+                },
+                serverId: kernel.kernelConnectionMetadata.serverId,
+                interpreter: kernel.kernelConnectionMetadata.interpreter
+            };
+            if (!this.registeredControllers.has(this.getControllerId(liveKernelConnection, 'jupyter-notebook'))) {
+                this.add(liveKernelConnection, [JupyterNotebookView, InteractiveWindowView]);
+            }
+            const liveController = Array.from(this.registeredControllers.values()).find(
+                (item) =>
+                    item.controller.notebookType === kernel.controller.notebookType &&
+                    item.connection.kind === 'connectToLiveRemoteKernel' &&
+                    item.connection.id === kernel.session?.kernel?.id
+            );
+            if (liveController) {
+                this.kernelProvider.updateKernel(kernel, liveController.connection, liveController.controller);
+                await this.commandManager.executeCommand('notebook.selectKernel', {
+                    id: liveController.id,
+                    extension: JVSC_EXTENSION_ID
+                });
+            } else {
+                traceWarning(
+                    `Changing to live controller failed, could not find live kernel controller for ${kernel.session?.kernel?.id}`
+                );
+            }
+            return;
+        }
     }
 
     private isFiltered(metadata: KernelConnectionMetadata): boolean {

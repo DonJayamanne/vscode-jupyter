@@ -3,13 +3,15 @@
 
 'use strict';
 import type { KernelMessage } from '@jupyterlab/services';
-import { Event, EventEmitter, NotebookDocument, Uri, workspace } from 'vscode';
+import { Event, EventEmitter, NotebookController, NotebookDocument, Uri, workspace } from 'vscode';
 import { IVSCodeNotebook } from '../platform/common/application/types';
 import { traceInfoIfCI, traceVerbose, traceWarning } from '../platform/logging';
 import { getDisplayPath } from '../platform/common/platform/fs-paths';
 import { IAsyncDisposable, IAsyncDisposableRegistry, IDisposableRegistry } from '../platform/common/types';
 import { noop } from '../platform/common/utils/misc';
-import { IKernel, IKernelProvider, KernelOptions } from './types';
+import { IKernel, IKernelProvider, KernelConnectionMetadata, KernelOptions } from './types';
+import { NotebookControllerWrapper } from './notebookControllerWrapper';
+import { KernelConnectionMetadataProxy } from './kernelConnectionMetadataWrapper';
 
 export abstract class BaseKernelProvider implements IKernelProvider {
     /**
@@ -53,6 +55,20 @@ export abstract class BaseKernelProvider implements IKernelProvider {
         disposables.push(this._onDidStartKernel);
         disposables.push(this._onDidCreateKernel);
     }
+    updateKernel(kernel: IKernel, metadata: KernelConnectionMetadata, controller: NotebookController): void {
+        const controllerWrapper = kernel.controller;
+        if (NotebookControllerWrapper.isWrapped(controllerWrapper)) {
+            controllerWrapper.update(controller);
+        } else {
+            throw new Error('IKernel instantiated without passing a NotebookControllerWrapper');
+        }
+        const metadataWrapper = kernel.kernelConnectionMetadata;
+        if (KernelConnectionMetadataProxy.isWrapped(metadataWrapper)) {
+            metadataWrapper.update(metadata);
+        } else {
+            throw new Error('IKernel instantiated without passing a KernelConnectionMetadataWrapper');
+        }
+    }
 
     public get onDidDisposeKernel(): Event<IKernel> {
         return this._onDidDisposeKernel.event;
@@ -80,7 +96,7 @@ export abstract class BaseKernelProvider implements IKernelProvider {
         await Promise.all(this.kernels.map((k) => k.dispose()));
     }
     public abstract getOrCreate(uri: Uri, options: KernelOptions): IKernel;
-    public getInternal(uri: Uri):
+    protected getInternal(uri: Uri):
         | {
               options: KernelOptions;
               kernel: IKernel;

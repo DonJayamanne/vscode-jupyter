@@ -64,7 +64,14 @@ import {
     areKernelConnectionsEqual,
     getKernelRegistrationInfo
 } from '../../kernels/helpers';
-import { IKernel, IKernelProvider, isLocalConnection, KernelConnectionMetadata } from '../../kernels/types';
+import {
+    IKernel,
+    IKernelProvider,
+    isLocalConnection,
+    KernelAction,
+    KernelActionSource,
+    KernelConnectionMetadata
+} from '../../kernels/types';
 import { KernelDeadError } from '../../kernels/errors/kernelDeadError';
 import { DisplayOptions } from '../../kernels/displayOptions';
 import { getNotebookMetadata, isJupyterNotebook } from '../../platform/common/utils';
@@ -155,7 +162,12 @@ export class VSCodeNotebookController implements Disposable, IVSCodeNotebookCont
         private readonly browser: IBrowserService,
         private readonly extensionChecker: IPythonExtensionChecker,
         scriptConverter: ILocalResourceUriConverter,
-        private serviceContainer: IServiceContainer
+        private serviceContainer: IServiceContainer,
+        private onKernelActionCompleted: (
+            action: KernelAction,
+            actionSource: KernelActionSource,
+            kernel: IKernel
+        ) => Promise<void>
     ) {
         disposableRegistry.push(this);
         this._onNotebookControllerSelected = new EventEmitter<{
@@ -175,7 +187,7 @@ export class VSCodeNotebookController implements Disposable, IVSCodeNotebookCont
 
         // Fill in extended info for our controller
         this.controller.interruptHandler = this.handleInterrupt.bind(this);
-        this.controller.description = getKernelConnectionPath(kernelConnection, this.workspace);
+    this.controller.description = getKernelConnectionPath(kernelConnection, this.workspace);
         this.controller.detail =
             kernelConnection.kind === 'connectToLiveRemoteKernel'
                 ? getRemoteKernelSessionInformation(kernelConnection)
@@ -289,7 +301,12 @@ export class VSCodeNotebookController implements Disposable, IVSCodeNotebookCont
             // If user has selected another controller, then kill the current kernel.
             // Possible user selected a controller that's not contributed by us at all.
             const kernel = this.kernelProvider.get(event.notebook.uri);
-            if (kernel?.kernelConnectionMetadata.id === this.kernelConnection.id) {
+            if (
+                kernel?.kernelConnectionMetadata.id === this.kernelConnection.id &&
+                // Also check if the controllers are the same.
+                // Sometimes we swap the controller.
+                kernel.controller.id === this.controller.id
+            ) {
                 traceInfo(
                     `Disposing kernel ${this.kernelConnection.id} for notebook ${getDisplayPath(
                         event.notebook.uri
@@ -456,16 +473,20 @@ export class VSCodeNotebookController implements Disposable, IVSCodeNotebookCont
         // Connect to a matching kernel if possible (but user may pick a different one)
         let currentContext: 'start' | 'execution' = 'start';
         let kernel: IKernel | undefined;
-        let controller = this.controller;
+        let controller: NotebookController = this.controller;
+        let oldController: NotebookController = this.controller;
         let kernelStarted = false;
         try {
             kernel = await this.connectToKernel(doc, new DisplayOptions(false));
-            kernelStarted = true;
             // If the controller changed, then ensure to create a new cell execution object.
-            if (kernel && kernel.controller.id !== controller.id) {
+            if (kernel && kernel.controller.id !== oldController.id) {
                 controller = kernel.controller;
+                exec.end(undefined);
                 exec = this.createCellExecutionIfNecessary(cell, kernel.controller);
             }
+            kernelStarted = true;
+            // Controller used by the kernel could have changed.
+            controller = kernel.controller;
             currentContext = 'execution';
             if (kernel.controller.id === this.id) {
                 this.updateKernelInfoInNotebookWhenAvailable(kernel, doc);
@@ -501,7 +522,10 @@ export class VSCodeNotebookController implements Disposable, IVSCodeNotebookCont
             this.serviceContainer,
             { resource: doc.uri, notebook: doc },
             options,
-            this.disposables
+            this.disposables,
+            'jupyterExtension',
+            noop,
+            this.onKernelActionCompleted.bind(this)
         );
     }
 
@@ -605,6 +629,10 @@ export class VSCodeNotebookController implements Disposable, IVSCodeNotebookCont
         // This will dispose any existing (older kernels) associated with this notebook.
         // This way other parts of extension have access to this kernel immediately after event is handled.
         // Unlike webview notebooks we cannot revert to old kernel if kernel switching fails.
+        if (this.kernelProvider.get(document.uri)?.controller.id === this.id) {
+            // TODO: Add comments.
+            return;
+        }
         const newKernel = this.kernelProvider.getOrCreate(document.uri, {
             metadata: selectedKernelConnectionMetadata,
             controller: this.controller,
