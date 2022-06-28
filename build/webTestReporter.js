@@ -12,9 +12,10 @@ const colors = require('colors');
 // const core = require('@actions/core');
 
 const settingsFile = path.join(__dirname, '..', 'src', 'test', 'datascience', '.vscode', 'settings.json');
-const webTestSummaryJsonFile = path.join(__dirname, '..', 'webtest.json');
-const webTestSummaryFile = path.join(__dirname, '..', 'webtest.txt');
-const webTestSummaryNb = path.join(__dirname, '..', 'webtest.ipynb');
+const webTestSummaryJsonFile = path.join(__dirname, '..', 'testresults.json');
+const webTestSummaryFile = path.join(__dirname, '..', 'testresults.txt');
+const webTestSummaryNb = path.join(__dirname, '..', 'testresults.ipynb');
+const webTestSummaryXunit = path.join(__dirname, '..', 'testresults.xml');
 const progress = [];
 
 exports.startReportServer = async function () {
@@ -77,25 +78,38 @@ exports.startReportServer = async function () {
 exports.dumpTestSummary = () => {
     try {
         const summary = JSON.parse(fs.readFileSync(webTestSummaryJsonFile).toString());
-        const eventEmitter = new EventEmitter();
-        const reportWriter = new mocha.reporters.Spec(eventEmitter, { color: true });
+        const runner = new EventEmitter();
+        runner.stats = {};
+        const reportWriter = new mocha.reporters.Spec(runner, { color: true });
+        const xUnitReportWriter = new mocha.reporters.XUnit(runner, {
+            color: true,
+            reporterOptions: { output: webTestSummaryXunit }
+        });
         reportWriter.failures = [];
+        xUnitReportWriter.failures = [];
         const cells = [];
         let indent = 0;
         let executionCount = 0;
         summary.forEach((output) => {
             // mocha expects test objects to have a method `slow, fullTitle, titlePath`.
-            ['slow', 'fullTitle', 'titlePath'].forEach((fnName) => {
+            ['slow', 'fullTitle', 'titlePath', 'isPending'].forEach((fnName) => {
                 const value = output[fnName];
                 output[fnName] = () => value;
             });
+            // Tests have a parent with a title, used by xunit.
+            const currentParent = output.parent || { fullTitle: '' };
+            output.parent = {
+                fullTitle: () => ('fullTitle' in currentParent ? currentParent.fullTitle : '') || ''
+            };
             if ('stats' in output) {
-                reportWriter.stats = output.stats;
+                reportWriter.stats = { ...output.stats };
+                Object.assign(runner.stats, output.stats);
             }
             if (output.event === 'fail') {
                 reportWriter.failures.push(output);
+                xUnitReportWriter.failures.push(output);
             }
-            eventEmitter.emit(output.event, Object.assign({}, output));
+            runner.emit(output.event, Object.assign({}, output));
 
             switch (output.event) {
                 case 'suite': {

@@ -33,19 +33,35 @@ type Exception = {
     expected: any;
     operator: any;
 };
+type ParentTest = { fullTitle?: string };
+
 type Message =
     | { event: typeof constants.EVENT_RUN_BEGIN }
     | { event: typeof constants.EVENT_RUN_END; stats?: mochaTypes.Stats }
-    | { event: typeof constants.EVENT_SUITE_BEGIN; title: string; titlePath: string[]; fullTitle: string }
-    | { event: typeof constants.EVENT_SUITE_END; title: string; slow: number; titlePath: string[]; fullTitle: string }
+    | {
+          event: typeof constants.EVENT_SUITE_BEGIN;
+          title: string;
+          titlePath: string[];
+          fullTitle: string;
+      }
+    | {
+          event: typeof constants.EVENT_SUITE_END;
+          title: string;
+          slow: number;
+          titlePath: string[];
+          fullTitle: string;
+      }
     | {
           event: typeof constants.EVENT_TEST_FAIL;
           title: string;
           err: Exception;
-          duration?: number;
           titlePath: string[];
           fullTitle: string;
           slow: number;
+          parent?: ParentTest;
+          isPending: boolean;
+          duration?: number;
+          state: 'failed' | 'passed' | undefined;
           consoleOutput: { category?: 'warn' | 'error'; output: string; time: number }[];
       }
     | {
@@ -54,14 +70,21 @@ type Message =
           titlePath: string[];
           fullTitle: string;
           slow: number;
+          isPending: boolean;
+          duration?: number;
+          state: 'failed' | 'passed' | undefined;
+          parent?: ParentTest;
       }
     | {
           event: typeof constants.EVENT_TEST_PASS;
           title: string;
-          duration?: number;
           titlePath: string[];
           fullTitle: string;
           slow: number;
+          isPending: boolean;
+          duration?: number;
+          state: 'failed' | 'passed' | undefined;
+          parent?: ParentTest;
       };
 let currentPromise = Promise.resolve();
 const messages: Message[] = [];
@@ -72,7 +95,7 @@ function writeReportProgress(message: Message) {
         messages.push(message);
         if (message.event === constants.EVENT_RUN_END) {
             const ext = extensions.getExtension(JVSC_EXTENSION_ID_FOR_TESTS)!.extensionUri;
-            const logFile = Uri.joinPath(ext, 'webtest.json');
+            const logFile = Uri.joinPath(ext, 'testresults.json');
             workspace.fs.writeFile(logFile, Buffer.from(JSON.stringify(messages))).then(noop, noop);
         }
     } else {
@@ -224,11 +247,14 @@ function CustomReporter(this: any, runner: mochaTypes.Runner, options: mochaType
                 event: constants.EVENT_TEST_FAIL,
                 title: test.title,
                 err: formatException(err),
-                duration: test.duration,
                 titlePath: test.titlePath(),
                 slow: test.slow(),
                 fullTitle: test.fullTitle(),
-                consoleOutput
+                consoleOutput,
+                duration: test.duration,
+                state: test.state,
+                isPending: test.isPending(),
+                parent: { fullTitle: test.parent?.fullTitle() }
             });
         })
         .on(constants.EVENT_TEST_BEGIN, (test: mochaTypes.Test) => {
@@ -238,7 +264,11 @@ function CustomReporter(this: any, runner: mochaTypes.Runner, options: mochaType
                 title: test.title,
                 titlePath: test.titlePath(),
                 slow: test.slow(),
-                fullTitle: test.fullTitle()
+                fullTitle: test.fullTitle(),
+                isPending: test.isPending(),
+                duration: test.duration,
+                state: test.state,
+                parent: { fullTitle: test.parent?.fullTitle() }
             });
         })
         .on(constants.EVENT_TEST_PENDING, (test: mochaTypes.Test) => {
@@ -248,7 +278,11 @@ function CustomReporter(this: any, runner: mochaTypes.Runner, options: mochaType
                 title: test.title,
                 titlePath: test.titlePath(),
                 slow: test.slow(),
-                fullTitle: test.fullTitle()
+                fullTitle: test.fullTitle(),
+                isPending: test.isPending(),
+                duration: test.duration,
+                state: test.state,
+                parent: { fullTitle: test.parent?.fullTitle() }
             });
         })
         .on(constants.EVENT_TEST_PASS, (test: mochaTypes.Test) => {
@@ -256,7 +290,10 @@ function CustomReporter(this: any, runner: mochaTypes.Runner, options: mochaType
             writeReportProgress({
                 event: constants.EVENT_TEST_PASS,
                 title: test.title,
-                duration: test.duration
+                duration: test.duration,
+                state: test.state,
+                isPending: test.isPending(),
+                parent: { fullTitle: test.parent?.fullTitle() }
             });
         });
 }
