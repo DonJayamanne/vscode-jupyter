@@ -51,7 +51,8 @@ import { generateCellRangesFromDocument } from '../../interactive-window/editor-
 import { Commands } from '../../platform/common/constants';
 import { IControllerSelection } from '../../notebooks/controllers/types';
 
-suite(`Interactive window execution`, async function () {
+// eslint-disable-next-line no-only-tests/no-only-tests
+suite.only(`Interactive window execution`, async function () {
     this.timeout(120_000);
     let api: IExtensionTestApi;
     const disposables: IDisposable[] = [];

@@ -368,12 +368,12 @@ jobs:
         # Basically with exclude, you can exclude any of the combinations from the result matrix.
         # & with include, you can include additional items to the result matrix.
         include:
-          - jupyter: remote # We don't care how remote is started (we only want to test connecting to it)
-            python: nonConda
-            pythonVersion: '3.9'
-            os: ubuntu-latest
-            webOrDesktop: 'desktop'
-          - jupyter: remote
+        #   - jupyter: remote # We don't care how remote is started (we only want to test connecting to it)
+        #     python: nonConda
+        #     pythonVersion: '3.9'
+        #     os: ubuntu-latest
+        #     webOrDesktop: 'desktop'
+        #   - jupyter: remote
             python: nonConda
             pythonVersion: '3.9'
             os: ubuntu-latest
@@ -570,37 +570,37 @@ jobs:
         env:
           CI_JUPYTER_FAST_COMPILATION: 'true'
 
-      # Used by tests for non-python kernels.
-      # Test are enabled via env variable `VSC_JUPYTER_CI_RUN_NON_PYTHON_NB_TEST`
-      - name: Install Julia
-        if: matrix.os != 'windows-latest'
-        uses: julia-actions/setup-julia@v1
-        with:
-          version: ${{env.JULIA_VERSION}}
+    #   # Used by tests for non-python kernels.
+    #   # Test are enabled via env variable `VSC_JUPYTER_CI_RUN_NON_PYTHON_NB_TEST`
+    #   - name: Install Julia
+    #     if: matrix.os != 'windows-latest'
+    #     uses: julia-actions/setup-julia@v1
+    #     with:
+    #       version: ${{env.JULIA_VERSION}}
 
-      - name: Install Julia Kernel
-        if: matrix.os != 'windows-latest'
-        shell: bash
-        run: |
-          julia -e '
-            using Pkg
-            Pkg.add("IJulia")'
+    #   - name: Install Julia Kernel
+    #     if: matrix.os != 'windows-latest'
+    #     shell: bash
+    #     run: |
+    #       julia -e '
+    #         using Pkg
+    #         Pkg.add("IJulia")'
 
-      - name: Install Dot.net
-        if: matrix.os != 'windows-latest'
-        uses: actions/setup-dotnet@v1.8.0
-        with:
-          dotnet-version: ${{env.DOTNET_VERSION}}
+    #   - name: Install Dot.net
+    #     if: matrix.os != 'windows-latest'
+    #     uses: actions/setup-dotnet@v1.8.0
+    #     with:
+    #       dotnet-version: ${{env.DOTNET_VERSION}}
 
-      - name: Install .NET Interactive
-        if: matrix.os != 'windows-latest'
-        shell: bash -l {0}
-        run: dotnet tool install -g --add-source "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json" Microsoft.dotnet-interactive
+    #   - name: Install .NET Interactive
+    #     if: matrix.os != 'windows-latest'
+    #     shell: bash -l {0}
+    #     run: dotnet tool install -g --add-source "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json" Microsoft.dotnet-interactive
 
-      - name: Install .NET Kernel
-        if: matrix.os != 'windows-latest'
-        shell: bash -l {0}
-        run: dotnet interactive jupyter install
+    #   - name: Install .NET Kernel
+    #     if: matrix.os != 'windows-latest'
+    #     shell: bash -l {0}
+    #     run: dotnet interactive jupyter install
 
       - name: Create Virtual Env for Tests
         uses: ./.github/actions/create-venv-for-tests
