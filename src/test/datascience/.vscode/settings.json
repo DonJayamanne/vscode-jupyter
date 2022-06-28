@@ -37,5 +37,5 @@
     "task.problemMatchers.neverPrompt": {
         "shell": true,
         "npm": true
-    }
+    },"jupyter.REPORT_SERVER_PORT": 54219,"jupyter.DEBUG_JUPYTER_SERVER_URI": "http://localhost:50865/?token=e208c40c6f9a47458939b5ee645b54f3"
 }

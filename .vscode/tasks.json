@@ -81,13 +81,13 @@
         {
             "label": "Start Jupyter Server",
             "type": "npm",
-            "dependsOn": "compile-web-test",
+            // "dependsOn": "compile-web-test",
             "isBackground": false,
             "script": "startJupyterServer",
             "problemMatcher": [],
             "options": {
                 "env": {
-                    "CI_PYTHON_PATH": "", // Update with path to real python interpereter used for testing.
+                    "CI_PYTHON_PATH": "/Users/donjayamanne/crap/.venvWidgets/bin/python", // Update with path to real python interpereter used for testing.
                     "EXISTING_JUPYTER_URI": "", // Update with a server that you started yourself to avoid this script doing it
                 }
             }

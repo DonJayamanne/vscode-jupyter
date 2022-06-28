@@ -1594,7 +1594,7 @@
                         "everything"
                     ],
                     "description": "The logging level the extension logs at.",
-                    "scope": "machine"
+                    "scope": "resource"
                 },
                 "jupyter.experiments.optInto": {
                     "type": "array",

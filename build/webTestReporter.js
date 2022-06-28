@@ -6,11 +6,15 @@ const path = require('path');
 const { createServer } = require('http');
 const jsonc = require('jsonc-parser');
 const mocha = require('mocha');
+const dedent = require('dedent');
 const { EventEmitter } = require('events');
+const colors = require('colors');
+// const core = require('@actions/core');
 
 const settingsFile = path.join(__dirname, '..', 'src', 'test', 'datascience', '.vscode', 'settings.json');
 const webTestSummaryJsonFile = path.join(__dirname, '..', 'webtest.json');
 const webTestSummaryFile = path.join(__dirname, '..', 'webtest.txt');
+const webTestSummaryNb = path.join(__dirname, '..', 'webtest.ipynb');
 const progress = [];
 
 exports.startReportServer = async function () {
@@ -74,8 +78,11 @@ exports.dumpTestSummary = () => {
     try {
         const summary = JSON.parse(fs.readFileSync(webTestSummaryJsonFile).toString());
         const eventEmitter = new EventEmitter();
-        const reportWriter = new mocha.reporters.Spec(eventEmitter);
+        const reportWriter = new mocha.reporters.Spec(eventEmitter, { color: true });
         reportWriter.failures = [];
+        const cells = [];
+        let indent = 0;
+        let executionCount = 0;
         summary.forEach((output) => {
             // mocha expects test objects to have a method `slow, fullTitle, titlePath`.
             ['slow', 'fullTitle', 'titlePath'].forEach((fnName) => {
@@ -89,7 +96,71 @@ exports.dumpTestSummary = () => {
                 reportWriter.failures.push(output);
             }
             eventEmitter.emit(output.event, Object.assign({}, output));
+
+            switch (output.event) {
+                case 'suite': {
+                    indent += 1;
+                    const indentString = '#'.repeat(indent);
+                    cells.push({
+                        cell_type: 'markdown',
+                        metadata: {
+                            collapsed: true
+                        },
+                        source: dedent`
+                                ${indentString} ${output.title}
+                                `
+                    });
+                    break;
+                }
+                case 'suite end': {
+                    indent -= 1;
+                    break;
+                }
+                case 'fail': {
+                    const stackFrames = (output.err.stack || '').split(/\r?\n/);
+                    const line1 = stackFrames.shift() || '';
+
+                    const assertionError = {
+                        ename: '',
+                        evalue: '',
+                        output_type: 'error',
+                        traceback: [`${colors.red(line1)}\n`, stackFrames.join('\n')]
+                    };
+                    const consoleOutputs = (output.consoleOutput || [])
+                        .map((item) => {
+                            const time = item.time ? new Date(item.time) : '';
+                            const timeStr = time ? `${time.toLocaleTimeString()}.${time.getMilliseconds()}` : '';
+                            const colorizedTime = timeStr ? `${colors.blue(timeStr)}: ` : '';
+                            switch (item.category) {
+                                case 'warn':
+                                    return `${colorizedTime}${colors.yellow(item.output)}`;
+                                case 'error':
+                                    return `${colorizedTime}${colors.red(item.output)}`;
+                                default:
+                                    return `${colorizedTime}${item.output}`;
+                                    break;
+                            }
+                        })
+                        .map((item) => `${item}\n`);
+                    const consoleOutput = {
+                        name: 'stdout',
+                        output_type: 'stream',
+                        text: consoleOutputs
+                    };
+                    cells.push({
+                        cell_type: 'code',
+                        metadata: {
+                            collapsed: true
+                        },
+                        source: `#${output.title}`,
+                        execution_count: ++executionCount,
+                        outputs: [assertionError, consoleOutput]
+                    });
+                    break;
+                }
+            }
         });
+        fs.writeFileSync(webTestSummaryNb, JSON.stringify({ cells: cells }));
     } catch (ex) {
         console.error('Failed dumpTestSummary', ex);
     }

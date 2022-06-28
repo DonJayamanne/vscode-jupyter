@@ -1,0 +1,38 @@
+{
+    "kind": "startUsingPythonInterpreter",
+    "kernelSpec": {
+        "interpreterPath": "/opt/hostedtoolcache/Python/3.9.13/x64/bin/python",
+        "isRegisteredByVSC": "registeredByNewVersionOfExt",
+        "name": "python3913jvsc74a57bd0c5ea583863dc6ce0e7f353f4d473ac38f3af6b6b2488d3e5c15b98317bf17812",
+        "argv": ["python", "-m", "ipykernel_launcher", "-f", "{connection_file}"],
+        "language": "python",
+        "executable": "python",
+        "display_name": "Python 3.9.13 64-bit",
+        "metadata": {
+            "interpreter": {
+                "path": "/opt/hostedtoolcache/Python/3.9.13/x64/bin/python"
+            }
+        },
+        "env": {}
+    },
+    "interpreter": {
+        "id": "/opt/hostedtoolcache/Python/3.9.13/x64/bin/python",
+        "sysPrefix": "/opt/hostedtoolcache/Python/3.9.13/x64",
+        "envType": "Global",
+        "envName": "",
+        "architecture": 3,
+        "sysVersion": "3.9.13 (main, May 17 2022, 15:19:45) \n[GCC 9.4.0]",
+        "version": {
+            "raw": "3.9.13",
+            "major": 3,
+            "minor": 9,
+            "patch": 13,
+            "build": [],
+            "prerelease": ["final", "0"]
+        },
+        "displayName": "Python 3.9.13 64-bit",
+        "detailedDisplayName": "Python 3.9.13 64-bit",
+        "uri": "[object Object]"
+    },
+    "id": ".jvsc74a57bd0c5ea583863dc6ce0e7f353f4d473ac38f3af6b6b2488d3e5c15b98317bf17812./opt/hostedtoolcache/Python/3.9.13/x64/python./opt/hostedtoolcache/Python/3.9.13/x64/python.-m#ipykernel_launcher"
+}

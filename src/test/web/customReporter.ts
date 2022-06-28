@@ -6,6 +6,9 @@ import type * as mochaTypes from 'mocha';
 import { env, extensions, UIKind, Uri, workspace } from 'vscode';
 import { JVSC_EXTENSION_ID_FOR_TESTS } from '../constants';
 import { noop } from '../core';
+import { format } from 'util';
+import { registerLogger } from '../../platform/logging/index';
+import { Arguments, ILogger } from '../../platform/logging/types';
 const { inherits } = require('mocha/lib/utils');
 const defaultReporter = require('mocha/lib/reporters/spec');
 
@@ -14,9 +17,11 @@ const constants = {
     EVENT_RUN_END: 'end',
     EVENT_SUITE_BEGIN: 'suite',
     EVENT_SUITE_END: 'suite end',
+    EVENT_TEST_BEGIN: 'test',
     EVENT_TEST_FAIL: 'fail',
     EVENT_TEST_PENDING: 'pending',
-    EVENT_TEST_PASS: 'pass'
+    EVENT_TEST_PASS: 'pass',
+    EVENT_TEST_END: 'test end'
 };
 type Exception = {
     showDiff?: boolean;
@@ -41,6 +46,7 @@ type Message =
           titlePath: string[];
           fullTitle: string;
           slow: number;
+          consoleOutput: { category?: 'warn' | 'error'; output: string; time: number }[];
       }
     | {
           event: typeof constants.EVENT_TEST_PENDING;
@@ -117,19 +123,84 @@ function formatException(err: any) {
     return error as Exception;
 }
 
+class ConsoleHijacker implements ILogger {
+    private captureLogs?: boolean;
+    private _outputs: { category?: 'warn' | 'error'; output: string; time: number }[] = [];
+    public get output(): { category?: 'warn' | 'error'; output: string; time: number }[] {
+        return this._outputs;
+    }
+
+    public hijack() {
+        this.captureLogs = true;
+        this._outputs = [];
+    }
+    public release() {
+        const capturedOutput = this._outputs;
+        this.captureLogs = false;
+        this._outputs = [];
+        return capturedOutput;
+    }
+    traceLog(message: string, ...data: Arguments): void {
+        this.logMessage(undefined, message, data);
+    }
+    traceError(message: string, ...data: Arguments): void {
+        this.logMessage('error', message, data);
+    }
+    traceWarn(message: string, ...data: Arguments): void {
+        this.logMessage('warn', message, data);
+    }
+    traceInfo(message: string, ...data: Arguments): void {
+        this.logMessage(undefined, message, data);
+    }
+    traceEverything(message: string, ...data: Arguments): void {
+        this.logMessage(undefined, message, data);
+    }
+    traceVerbose(message: string, ...data: Arguments): void {
+        this.logMessage(undefined, message, data);
+    }
+    logMessage(category: 'error' | 'warn' | undefined, message: string, ...data: Arguments) {
+        if (!this.captureLogs) {
+            return;
+        }
+        const output = ([message] as any[])
+            .concat(data)
+            .map((arg) => {
+                try {
+                    return format(arg);
+                } catch {
+                    return `${arg}`;
+                }
+            })
+            .join(' ');
+        this._outputs.push({ category, output, time: Date.now() });
+    }
+}
+
+const consoleHijacker = new ConsoleHijacker();
+
+registerLogger(consoleHijacker);
 function CustomReporter(this: any, runner: mochaTypes.Runner, options: mochaTypes.MochaOptions) {
     defaultReporter.call(this, runner, options);
     console.error(`Created custom reporter`);
+    const myFn = function () {
+        console.error('hello');
+    };
+    console.log = myFn;
+    console.log('Hello');
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     runner
         .once(constants.EVENT_RUN_BEGIN, () => {
+            consoleHijacker.release();
             console.error(`Started tests`);
             writeReportProgress({ event: constants.EVENT_RUN_BEGIN });
         })
         .once(constants.EVENT_RUN_END, () => {
+            consoleHijacker.release();
             console.error('Writing the end of the test run');
             writeReportProgress({ event: constants.EVENT_RUN_END, stats: runner.stats });
         })
         .on(constants.EVENT_SUITE_BEGIN, (suite: mochaTypes.Suite) => {
+            consoleHijacker.release();
             writeReportProgress({
                 event: constants.EVENT_SUITE_BEGIN,
                 title: suite.title,
@@ -138,6 +209,7 @@ function CustomReporter(this: any, runner: mochaTypes.Runner, options: mochaType
             });
         })
         .on(constants.EVENT_SUITE_END, (suite: mochaTypes.Suite) => {
+            consoleHijacker.release();
             writeReportProgress({
                 event: constants.EVENT_SUITE_END,
                 title: suite.title,
@@ -147,6 +219,7 @@ function CustomReporter(this: any, runner: mochaTypes.Runner, options: mochaType
             });
         })
         .on(constants.EVENT_TEST_FAIL, (test: mochaTypes.Test, err: any) => {
+            const consoleOutput = consoleHijacker.release();
             writeReportProgress({
                 event: constants.EVENT_TEST_FAIL,
                 title: test.title,
@@ -154,10 +227,22 @@ function CustomReporter(this: any, runner: mochaTypes.Runner, options: mochaType
                 duration: test.duration,
                 titlePath: test.titlePath(),
                 slow: test.slow(),
+                fullTitle: test.fullTitle(),
+                consoleOutput
+            });
+        })
+        .on(constants.EVENT_TEST_BEGIN, (test: mochaTypes.Test) => {
+            consoleHijacker.hijack();
+            writeReportProgress({
+                event: constants.EVENT_TEST_BEGIN,
+                title: test.title,
+                titlePath: test.titlePath(),
+                slow: test.slow(),
                 fullTitle: test.fullTitle()
             });
         })
         .on(constants.EVENT_TEST_PENDING, (test: mochaTypes.Test) => {
+            consoleHijacker.release();
             writeReportProgress({
                 event: constants.EVENT_TEST_PENDING,
                 title: test.title,
@@ -167,6 +252,7 @@ function CustomReporter(this: any, runner: mochaTypes.Runner, options: mochaType
             });
         })
         .on(constants.EVENT_TEST_PASS, (test: mochaTypes.Test) => {
+            consoleHijacker.release();
             writeReportProgress({
                 event: constants.EVENT_TEST_PASS,
                 title: test.title,
@@ -174,5 +260,6 @@ function CustomReporter(this: any, runner: mochaTypes.Runner, options: mochaType
             });
         });
 }
+
 inherits(CustomReporter, defaultReporter);
 module.exports = CustomReporter;
