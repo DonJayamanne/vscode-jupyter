@@ -373,7 +373,7 @@ jobs:
         #     pythonVersion: '3.9'
         #     os: ubuntu-latest
         #     webOrDesktop: 'desktop'
-        #   - jupyter: remote
+          - jupyter: remote
             python: nonConda
             pythonVersion: '3.9'
             os: ubuntu-latest
