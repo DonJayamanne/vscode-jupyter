@@ -707,6 +707,14 @@ jobs:
           path: .nyc_output
           retention-days: 1
 
+      - name: Upload unit test coverage reports
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: testResults-${{matrix.jupyter}}-${{matrix.python}}-${{matrix.pythonVersion}}-${{matrix.os}}.json
+          path: webtest.json
+          retention-days: 1
+
       - name: Upload screenshots
         uses: actions/upload-artifact@v2
         if: always()
