@@ -15,6 +15,7 @@ const settingsFile = path.join(__dirname, '..', 'src', 'test', 'datascience', '.
 const webTestSummaryJsonFile = path.join(__dirname, '..', 'testresults.json');
 const webTestSummaryFile = path.join(__dirname, '..', 'testresults.txt');
 const webTestSummaryNb = path.join(__dirname, '..', 'testresults.ipynb');
+const webTestSummaryJson = path.join(__dirname, '..', 'testresults-report.json');
 const webTestSummaryXunit = path.join(__dirname, '..', 'testresults.xml');
 const progress = [];
 
@@ -85,14 +86,20 @@ exports.dumpTestSummary = () => {
             color: true,
             reporterOptions: { output: webTestSummaryXunit }
         });
+        const jsonReportWriter = new mocha.reporters.JSON(runner, {
+            color: true,
+            reporterOption: { output: webTestSummaryJson }
+        });
         reportWriter.failures = [];
         xUnitReportWriter.failures = [];
+        jsonReportWriter.failures = [];
         const cells = [];
         let indent = 0;
         let executionCount = 0;
         summary.forEach((output) => {
+            output = JSON.parse(JSON.stringify(output));
             // mocha expects test objects to have a method `slow, fullTitle, titlePath`.
-            ['slow', 'fullTitle', 'titlePath', 'isPending'].forEach((fnName) => {
+            ['slow', 'fullTitle', 'titlePath', 'isPending', 'currentRetry'].forEach((fnName) => {
                 const value = output[fnName];
                 output[fnName] = () => value;
             });
@@ -108,8 +115,9 @@ exports.dumpTestSummary = () => {
             if (output.event === 'fail') {
                 reportWriter.failures.push(output);
                 xUnitReportWriter.failures.push(output);
+                jsonReportWriter.failures.push(output);
             }
-            runner.emit(output.event, Object.assign({}, output));
+            runner.emit(output.event, output, output.err);
 
             switch (output.event) {
                 case 'suite': {
