@@ -76,8 +76,7 @@ class WidgetManagerComponent {
 }
 
 const outputDisposables = new Map<string, { dispose(): void }>();
-const htmlDisposables = new WeakMap<HTMLElement, { dispose(): void }>();
-const renderedWidgets = new Map<string, { widget?: { dispose: Function } }>();
+const renderedWidgets = new Map<string, { container: HTMLElement; widget?: { dispose: Function } }>();
 /**
  * Called from renderer to render output.
  * This will be exposed as a public method on window for renderer to render output.
@@ -105,8 +104,6 @@ export function renderOutput(outputItem: OutputItem, element: HTMLElement, logge
 }
 export function disposeOutput(outputId?: string) {
     if (outputId) {
-        logMessage(`Disposing widget ${outputId}`);
-        renderedWidgets.get(outputId)?.widget?.dispose();
         // We can't delete the widgets because they may be rerendered when we scroll them into view.
         // See issue: https://github.com/microsoft/vscode-jupyter/issues/10485
         // However we can mark them as not being currently rendered.
@@ -129,8 +126,12 @@ function renderIPyWidget(
     logger: (message: string) => void
 ) {
     logger(`Rendering IPyWidget ${outputId} with model ${model.model_id}`);
-    if (renderedWidgets.has(outputId)) {
+    if (renderedWidgets.has(outputId) && renderedWidgets.get(outputId)?.container === container) {
         return logger('already rendering');
+    }
+    if (renderedWidgets.has(outputId)) {
+        logger('Widget was already rendering for another container, dispose that widget so we can re-render it');
+        renderedWidgets.get(outputId)?.widget?.dispose();
     }
     const output = document.createElement('div');
     output.className = 'cell-output cell-output';
@@ -141,9 +142,14 @@ function renderIPyWidget(
     ele.className = 'cell-output-ipywidget-background';
     container.appendChild(ele);
     ele.appendChild(output);
-    renderedWidgets.set(outputId, {});
+    renderedWidgets.set(outputId, { container });
     createWidgetView(model, ele)
         .then((w) => {
+            if (renderedWidgets.get(outputId)?.container !== container) {
+                logger('Widget container changed, hence disposing the widget');
+                w?.dispose();
+                return;
+            }
             if (renderedWidgets.has(outputId)) {
                 renderedWidgets.get(outputId)!.widget = w;
             }
@@ -155,7 +161,6 @@ function renderIPyWidget(
                 }
             };
             outputDisposables.set(outputId, disposable);
-            htmlDisposables.set(ele, disposable);
             // Keep track of the fact that we have successfully rendered a widget for this outputId.
             const statusInfo = stackOfWidgetsRenderStatusByOutputId.find((item) => item.outputId === outputId);
             if (statusInfo) {
