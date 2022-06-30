@@ -241,7 +241,12 @@ export class VSCodeNotebookController implements Disposable, IVSCodeNotebookCont
     public async connectToKernel(
         { resource, notebook }: { resource?: Uri; notebook: NotebookDocument },
         options: IDisplayOptions,
-        onAction: (action: KernelAction, kernel: IKernel) => void = () => noop()
+        onAction: (action: KernelAction, kernel: IKernel) => void = () => noop(),
+        onActionCompleted: (
+            action: KernelAction,
+            actionSource: KernelActionSource,
+            kernel: IKernel
+        ) => Promise<void> = () => Promise.resolve()
     ) {
         resource = resource || notebook.uri;
         return KernelConnector.connectToKernel(
@@ -253,7 +258,10 @@ export class VSCodeNotebookController implements Disposable, IVSCodeNotebookCont
             this.disposables,
             'jupyterExtension',
             onAction,
-            this.onKernelActionCompleted.bind(this)
+            async (action: KernelAction, actionSource: KernelActionSource, kernel: IKernel) => {
+                await this.onKernelActionCompleted(action, actionSource, kernel);
+                await onActionCompleted(action, actionSource, kernel);
+            }
         );
     }
 

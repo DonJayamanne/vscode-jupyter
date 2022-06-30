@@ -37,6 +37,7 @@ import { IConfigurationService, InteractiveWindowMode, Resource } from '../platf
 import { noop } from '../platform/common/utils/misc';
 import {
     IKernel,
+    IKernelProvider,
     isLocalConnection,
     KernelAction,
     KernelConnectionMetadata,
@@ -105,7 +106,8 @@ export class InteractiveWindow implements IInteractiveWindowLoadable {
     private kernelDisposables: Disposable[] = [];
     private _insertSysInfoPromise: Promise<NotebookCell> | undefined;
     private currentKernelInfo: {
-        kernel?: Deferred<IKernel>;
+        kernelStarted?: Deferred<void>;
+        kernel?: IKernel;
         controller?: NotebookController;
         metadata?: KernelConnectionMetadata;
     } = {};
@@ -132,7 +134,8 @@ export class InteractiveWindow implements IInteractiveWindowLoadable {
         private readonly storageFactory: IGeneratedCodeStorageFactory,
         private readonly debuggingManager: IInteractiveWindowDebuggingManager,
         private readonly isWebExtension: boolean,
-        private readonly controllerRegistrations: IControllerRegistration
+        private readonly controllerRegistrations: IControllerRegistration,
+        private readonly kernelProvider: IKernelProvider
     ) {
         // Set our owner and first submitter
         if (this._owner) {
@@ -174,30 +177,37 @@ export class InteractiveWindow implements IInteractiveWindowLoadable {
             // This cannot happen, but we need to make typescript happy.
             throw new Error('Controller not selected');
         }
-        if (this.currentKernelInfo.kernel) {
-            return this.currentKernelInfo.kernel.promise;
+        if (this.currentKernelInfo.kernelStarted) {
+            return this.currentKernelInfo.kernelStarted.promise.then(() => this.currentKernelInfo.kernel!);
         }
-        const kernelPromise = createDeferred<IKernel>();
-        kernelPromise.promise.catch(noop);
-        this.currentKernelInfo = { controller, metadata, kernel: kernelPromise };
+        const kernelStarted = createDeferred<void>();
+        kernelStarted.promise.catch(noop);
+        this.currentKernelInfo = { controller, metadata, kernelStarted };
 
         const sysInfoCell = this.insertSysInfoMessage(metadata, SysInfoReason.Start);
         try {
             // Try creating a kernel
             initializeInteractiveOrNotebookTelemetryBasedOnUserAction(this.owner, metadata);
 
-            const onStartKernel = (action: KernelAction, k: IKernel) => {
+            const onKernelStarted = async (action: KernelAction, k: IKernel) => {
+                if (action !== 'start' && action !== 'restart') {
+                    return;
+                }
+                // Id may be different if the user switched controllers
+                this.currentKernelInfo.kernel = k;
+                this.updateSysInfoMessage(
+                    this.getSysInfoMessage(k.kernelConnectionMetadata, SysInfoReason.Start),
+                    false,
+                    sysInfoCell
+                );
+            };
+            const onKernelStartCompleted = async (action: KernelAction, _: unknown, k: IKernel) => {
                 if (action !== 'start' && action !== 'restart') {
                     return;
                 }
                 // Id may be different if the user switched controllers
                 this.currentKernelInfo.controller = k.controller;
                 this.currentKernelInfo.metadata = k.kernelConnectionMetadata;
-                this.updateSysInfoMessage(
-                    this.getSysInfoMessage(k.kernelConnectionMetadata, SysInfoReason.Start),
-                    false,
-                    sysInfoCell
-                );
             };
             // When connecting, we need to update the sys info message
             this.updateSysInfoMessage(this.getSysInfoMessage(metadata, SysInfoReason.Start), false, sysInfoCell);
@@ -207,7 +217,8 @@ export class InteractiveWindow implements IInteractiveWindowLoadable {
             const kernel = await vscController.connectToKernel(
                 { notebook: this.notebookDocument, resource: this.owner },
                 new DisplayOptions(false),
-                onStartKernel
+                onKernelStarted,
+                onKernelStartCompleted
             );
             this.currentKernelInfo.controller = kernel.controller;
             this.currentKernelInfo.metadata = kernel.kernelConnectionMetadata;
@@ -247,10 +258,11 @@ export class InteractiveWindow implements IInteractiveWindowLoadable {
             this.fileInKernel = undefined;
             await this.runInitialization(kernel, this.owner);
             this.finishSysInfoMessage(kernel, sysInfoCell, SysInfoReason.Start);
-            kernelPromise.resolve(kernel);
+            kernelStarted.resolve();
             return kernel;
         } catch (ex) {
-            kernelPromise.reject(ex);
+            kernelStarted.reject(ex);
+            this.currentKernelInfo.kernelStarted = undefined;
             this.currentKernelInfo.kernel = undefined;
             this.disconnectKernel();
             if (this.owner) {
@@ -366,26 +378,8 @@ export class InteractiveWindow implements IInteractiveWindowLoadable {
         message = message.split('\n').join('  \n');
         this.updateSysInfoMessage(message, true, cellPromise);
     }
-    private registerControllerChangeListener(controller: IVSCodeNotebookController) {
-        const controllerChangeListener = controller.controller.onDidChangeSelectedNotebooks(
-            (selectedEvent: { notebook: NotebookDocument; selected: boolean }) => {
-                // Controller was deselected for this InteractiveWindow's NotebookDocument
-                if (selectedEvent.selected === false && selectedEvent.notebook === this.notebookEditor.notebook) {
-                    controllerChangeListener.dispose();
-                    this.disconnectKernel();
-                }
-            },
-            this,
-            this.internalDisposables
-        );
-    }
 
     private listenForControllerSelection() {
-        const controller = this.notebookControllerSelection.getSelected(this.notebookEditor.notebook);
-        if (controller !== undefined) {
-            this.registerControllerChangeListener(controller);
-        }
-
         // Ensure we hear about any controller changes so we can update our cached promises
         this.notebookControllerSelection.onControllerSelected(
             (e: { notebook: NotebookDocument; controller: IVSCodeNotebookController }) => {
@@ -394,8 +388,13 @@ export class InteractiveWindow implements IInteractiveWindowLoadable {
                 }
 
                 // Clear cached kernel when the selected controller for this document changes
-                this.registerControllerChangeListener(e.controller);
-                if (e.controller.id !== this.currentKernelInfo.controller?.id) {
+                const kernel = this.kernelProvider.get(this.notebookDocument.uri);
+                const isControllerAttachedToTheSameKernel =
+                    kernel && this.currentKernelInfo.kernel && kernel === this.currentKernelInfo.kernel;
+                if (
+                    e.controller.connection.id !== this.currentKernelInfo.kernel?.kernelConnectionMetadata.id &&
+                    !isControllerAttachedToTheSameKernel
+                ) {
                     this.disconnectKernel();
                     this.startKernel(e.controller.controller, e.controller.connection).ignoreErrors();
                 }
@@ -558,6 +557,7 @@ export class InteractiveWindow implements IInteractiveWindowLoadable {
     private disconnectKernel() {
         this.kernelDisposables.forEach((d) => d.dispose());
         this.kernelDisposables = [];
+        this.currentKernelInfo.kernelStarted = undefined;
         this.currentKernelInfo.kernel = undefined;
     }
 

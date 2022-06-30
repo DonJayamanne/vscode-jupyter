@@ -29,6 +29,11 @@ export interface IVSCodeNotebookController extends IDisposable {
     asWebviewUri(localResource: vscode.Uri): vscode.Uri;
     isAssociatedWithDocument(notebook: vscode.NotebookDocument): boolean;
     updateConnection(connection: KernelConnectionMetadata): void;
+    /**
+     * Connects to the kernel.
+     * @param {(action: KernelAction, kernel: IKernel) => void} [onAction] Callback invoked once connected to the the kernel.
+     * @param {(action: KernelAction, actionSource: KernelActionSource, kernel: IKernel) => Promise<void>} [onActionCompleted] Callback invoked once all necessary post processing has been completed (e.g. creating a live kernel connection after starting a kernel from a kernel spec).
+     */
     connectToKernel(
         notebookResource: { resource?: vscode.Uri; notebook: vscode.NotebookDocument },
         options: IDisplayOptions,
