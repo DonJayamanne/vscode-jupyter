@@ -101,9 +101,7 @@ export class CommonMessageCoordinator {
                         });
                     } else {
                         if (!webview.isReady || !this.readyMessageReceived) {
-                            // We've created the controller, however it hasn't been selected just yet.
-                            // The IWebviewCommunication object keep track of the controller as well,
-                            // hence that too needs to get updated with the active controller (i.e. detect the change from kernel spec to live kernel).
+                            // Web view is not yet ready to receive messages, hence queue these to be sent later.
                             this.queuedMessages.push({ type: e.message, payload: e.payload });
                             return;
                         }
@@ -190,10 +188,9 @@ export class CommonMessageCoordinator {
     }
 
     private sendPendingWebViewMessages() {
-        if (!this.webview) {
+        if (!this.webview || !this.webview.isReady || !this.readyMessageReceived) {
             return;
         }
-        // Check if the controller has been selected by our code.
         while (this.queuedMessages.length) {
             this.webview.postMessage(this.queuedMessages.shift()!).then(noop, noop);
         }
