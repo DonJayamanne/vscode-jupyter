@@ -121,9 +121,13 @@ export class CommonMessageCoordinator {
                     // to use a kernel. (IPyWidget Dispatcher uses this too)
                     if (m.type === IPyWidgetMessages.IPyWidgets_Ready) {
                         if (kernel?.kernelConnectionMetadata.kind === 'startUsingRemoteKernelSpec') {
+                            traceInfoIfCI(
+                                'Web view is not ready to receive widget messages (kernel points to remote kernel spec)'
+                            );
                             return;
                         }
                         if (!webview.isReady) {
+                            traceInfoIfCI('Web view is not ready to receive widget messages');
                             return;
                         }
                         this.readyMessageReceived = true;
@@ -144,6 +148,7 @@ export class CommonMessageCoordinator {
                             .get<IVSCodeNotebook>(IVSCodeNotebook)
                             .notebookEditors.find((item) => item.notebook === this.document);
                         if (nbEditor) {
+                            traceInfoIfCI('Re-rendering widgets');
                             notebooks
                                 .createRendererMessaging('jupyter-ipywidget-renderer')
                                 .postMessage({ type: IPyWidgetMessages.IPyWidgets_ReRenderWidgets }, nbEditor)

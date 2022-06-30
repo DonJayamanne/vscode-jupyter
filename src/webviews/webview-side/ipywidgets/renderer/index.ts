@@ -22,6 +22,7 @@ export const activate: ActivationFunction = (context) => {
     if (context.onDidReceiveMessage) {
         context.onDidReceiveMessage((message) => {
             if (message && 'type' in message && message.type === IPyWidgetMessages.IPyWidgets_ReRenderWidgets) {
+                logger('Received message to re-render widgets');
                 while (itemsNotRendered.length) {
                     const { outputItem, element } = itemsNotRendered.shift()!;
                     renderWidgetOutput(outputItem, element, logger);
@@ -65,7 +66,7 @@ function renderWidgetOutput(outputItem: OutputItem, element: HTMLElement, logger
     } else {
         // There are two possibilities,
         // 1. We've opened an existing notebook with widget output.
-        // 2. We ran a cell pointing to a Remote Kernle Spec, and the controller then changed
+        // 2. We ran a cell pointing to a Remote KernelSpec, and the controller then changed
         //   to point to a live kernel session, at which point the widget unloads & loads again.
         //   But thats all async, and when it re-loads the widget manager may not yet have been initialized.
         // Unfortunately, VS Code loads the webview & re-renders the outputs before we can start the widget manager.

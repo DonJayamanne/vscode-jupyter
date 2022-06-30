@@ -201,7 +201,8 @@ async function createWidgetView(
         return await wm?.renderWidget(widgetData, element);
     } catch (ex) {
         // eslint-disable-next-line no-console
-        console.error('Failed to render widget', ex);
+        console.error(`Failed to render widget ${widgetData.model_id}`, ex);
+        logMessage(`Error: Failed to render widget ${widgetData.model_id}, ${ex.toString()}`);
     }
 }
 
@@ -215,6 +216,7 @@ function initialize(context?: KernelMessagingApi) {
     } catch (ex) {
         // eslint-disable-next-line no-console
         console.error('Exception initializing WidgetManager', ex);
+        logMessage(`Error: Exception initializing WidgetManager, ${ex.toString()}`);
     }
 }
 
