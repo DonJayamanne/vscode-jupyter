@@ -119,7 +119,7 @@ suite(`Interactive window execution`, async function () {
             );
         }
     });
-    test.only('__file__ exists even after restarting a kernel', async function () {
+    test('__file__ exists even after restarting a kernel', async function () {
         // Ensure we click `Yes` when prompted to restart the kernel.
         disposables.push(await clickOKForRestartPrompt());
 
