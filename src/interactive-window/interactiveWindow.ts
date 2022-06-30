@@ -201,7 +201,7 @@ export class InteractiveWindow implements IInteractiveWindowLoadable {
             };
             // When connecting, we need to update the sys info message
             this.updateSysInfoMessage(this.getSysInfoMessage(metadata, SysInfoReason.Start), false, sysInfoCell);
-            const vscController = Array.from(this.controllerRegistrations.values).find(
+            const vscController = this.controllerRegistrations.values.find(
                 (item) => item.controller.id === controller.id
             )!;
             const kernel = await vscController.connectToKernel(
