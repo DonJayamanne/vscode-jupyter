@@ -38,11 +38,10 @@ class NotebookCommunication implements IWebviewCommunication, IDisposable {
     }
     constructor(
         public readonly editor: NotebookEditor,
-        controller: IVSCodeNotebookController,
         private readonly controllerSelection: IControllerSelection,
         private readonly kernelProvider: IKernelProvider
     ) {
-        this.changeController(controller);
+        this.changeController(controllerSelection.getSelected(editor.notebook)!);
     }
     public get isReady() {
         const kernel = this.kernelProvider.get(this.editor.notebook.uri);
@@ -132,11 +131,7 @@ class NotebookCommunication implements IWebviewCommunication, IDisposable {
 export class NotebookIPyWidgetCoordinator implements IExtensionSyncActivationService {
     private readonly messageCoordinators = new WeakMap<NotebookDocument, Promise<CommonMessageCoordinator>>();
     private readonly notebookDisposables = new WeakMap<NotebookDocument, Disposable[]>();
-    /**
-     * Public for testing purposes
-     */
-    public readonly notebookCommunications = new WeakMap<NotebookEditor, NotebookCommunication>();
-    private readonly notebookEditors = new WeakMap<NotebookDocument, NotebookEditor[]>();
+    private readonly notebookCommunications = new WeakMap<NotebookEditor, NotebookCommunication>();
     private controllerManager: IControllerSelection;
     constructor(
         @inject(IServiceContainer) private readonly serviceContainer: IServiceContainer,
@@ -162,20 +157,15 @@ export class NotebookIPyWidgetCoordinator implements IExtensionSyncActivationSer
                 .filter((editor) => editor.notebook === e.notebook)
                 .forEach((editor) => {
                     const comms = this.notebookCommunications.get(editor);
-                    this.notebookCommunications.delete(editor);
-                    if (comms) {
-                        comms.dispose();
+                    if (comms && comms.controller !== e.controller.controller) {
+                        this.notebookCommunications.delete(editor);
+                        if (comms) {
+                            comms.dispose();
+                        }
                     }
                 });
             previousCoordinators.then((item) => item.dispose()).catch(noop);
         }
-        // Swap the controller in the communication objects (if we have any).
-        const editors = this.notebookEditors.get(e.notebook) || [];
-        const notebookComms = editors
-            .filter((editor) => this.notebookCommunications.has(editor))
-            .map((editor) => this.notebookCommunications.get(editor)!);
-        notebookComms.forEach((comm) => comm.changeController(e.controller));
-
         // Possible user has split the notebook editor, if that's the case we need to hookup comms with this new editor as well.
         this.notebook.notebookEditors.forEach((editor) => this.initializeNotebookCommunication(editor, e.controller));
     }
@@ -195,9 +185,9 @@ export class NotebookIPyWidgetCoordinator implements IExtensionSyncActivationSer
             );
             return;
         }
-        traceVerbose(`Intiailize notebook communications for editor ${getDisplayPath(editor.notebook.uri)}`);
+        traceVerbose(`Initialize notebook communications for editor ${getDisplayPath(editor.notebook.uri)}`);
         const kernelProvider = this.serviceContainer.get<IKernelProvider>(IKernelProvider);
-        const comms = new NotebookCommunication(editor, controller, this.controllerManager, kernelProvider);
+        const comms = new NotebookCommunication(editor, this.controllerManager, kernelProvider);
         this.addNotebookDisposables(notebook, [comms]);
         this.notebookCommunications.set(editor, comms);
         const { token } = new CancellationTokenSource();
@@ -235,10 +225,6 @@ export class NotebookIPyWidgetCoordinator implements IExtensionSyncActivationSer
         });
     }
     private onDidCloseNotebookDocument(notebook: NotebookDocument) {
-        const editors = this.notebookEditors.get(notebook) || [];
-        disposeAllDisposables(this.notebookDisposables.get(notebook) || []);
-        editors.forEach((editor) => this.notebookCommunications.get(editor)?.dispose());
-
         const coordinator = this.messageCoordinators.get(notebook);
         coordinator?.then((c) => c.dispose()).catch(noop);
         this.messageCoordinators.delete(notebook);
