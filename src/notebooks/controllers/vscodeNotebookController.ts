@@ -499,12 +499,11 @@ export class VSCodeNotebookController implements Disposable, IVSCodeNotebookCont
         let currentContext: 'start' | 'execution' = 'start';
         let kernel: IKernel | undefined;
         let controller: NotebookController = this.controller;
-        let oldController: NotebookController = this.controller;
         let kernelStarted = false;
         try {
             kernel = await this.connectToKernel({ notebook }, new DisplayOptions(false));
             // If the controller changed, then ensure to create a new cell execution object.
-            if (kernel && kernel.controller.id !== oldController.id) {
+            if (kernel && kernel.controller.id !== controller.id) {
                 controller = kernel.controller;
                 exec.end(undefined);
                 exec = this.createCellExecutionIfNecessary(cell, kernel.controller);
