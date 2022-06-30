@@ -76,18 +76,33 @@ suite('3rd Party Kernel Service API', function () {
     }
     function compareKernelConnectionMetadata(a: KernelConnectionMetadata, b: KernelConnectionMetadata) {
         const aJson = getMetadataForComparison(a);
+        // Sometimes on CI, the python path can differ for the same interpreter.
+        // Take that into account,
+        // E.g. the same interpreter could have the path as `"interpreterPath": "/opt/hostedtoolcache/Python/3.9.13/x64/bin/python",` as well
+        // as "interpreterPath": "/opt/hostedtoolcache/Python/3.9.13/x64/python",
+        // Provided the kernelspecs have the same Id, we should be ok, hence don't compare these paths.
         if (a.interpreter?.uri) {
             aJson.interpreter!.uri = a.interpreter.uri.toString() as any;
         }
+        if (aJson.interpreter) {
+            delete (aJson.interpreter as any).id;
+            delete (aJson.interpreter as any).sysPrefix;
+        }
         if ('kernelSpec' in aJson && aJson.kernelSpec.metadata) {
             delete aJson.kernelSpec.metadata.interpreter;
+            delete aJson.kernelSpec.interpreterPath;
         }
         const bJson = getMetadataForComparison(b);
         if (b.interpreter?.uri) {
             bJson.interpreter!.uri = b.interpreter.uri.toString() as any;
         }
+        if (bJson.interpreter) {
+            delete (bJson.interpreter as any).id;
+            delete (bJson.interpreter as any).sysPrefix;
+        }
         if ('kernelSpec' in bJson && bJson.kernelSpec.metadata) {
             delete bJson.kernelSpec.metadata.interpreter;
+            delete bJson.kernelSpec.interpreterPath;
         }
         assert.deepEqual(
             aJson,
