@@ -130,6 +130,7 @@ export class CommonMessageCoordinator {
                             traceInfoIfCI('Web view is not ready to receive widget messages');
                             return;
                         }
+                        traceInfoIfCI('Web view is ready to receive widget messages');
                         this.readyMessageReceived = true;
                         this.sendPendingWebViewMessages();
                         // At this point, we know the kernels are ready, and the webview is ready to receive messages.
