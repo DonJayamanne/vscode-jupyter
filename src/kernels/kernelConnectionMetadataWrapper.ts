@@ -31,6 +31,20 @@ export class KernelConnectionMetadataProxy {
     public update(metadata: KernelConnectionMetadata) {
         this.metadata = metadata;
     }
+    public toString() {
+        return JSON.stringify(this.toJSON());
+    }
+    public toJSON() {
+        return {
+            kernelModel: this.kernelModel,
+            kernelSpec: this.kernelSpec,
+            interpreter: this.interpreter,
+            kind: this.kind,
+            baseUrl: this.baseUrl,
+            serverId: this.serverId,
+            id: this.id
+        };
+    }
     static isWrapped(
         metadata: KernelConnectionMetadata | KernelConnectionMetadataProxy
     ): metadata is KernelConnectionMetadataProxy {

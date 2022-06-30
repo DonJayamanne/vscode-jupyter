@@ -19,6 +19,20 @@ import { IDisposable } from '../platform/common/types';
 /**
  * Returns a class thats identical to NotebookController.
  * Basically similar to a `Proxy` class, but with the ability to determine whether the instance of this class is a proxy or not.
+ * & a special method to change the underlying controller.
+ *
+ * When we create a IKernel when we're about to start a kernel, and this IKernel has a NotebookController & KernelConnectionMetadata associated with it.
+ * So, when we start the kernel, the controller in the UI changes from a a remote kernel spec to a live kernel session.
+ * What we do here is update the properties (values) of the Notebook controller & the Kernel Connection metadata.
+ *
+ * Again, all of this could be done by changing the `controller` and `kernelConnectionMetadata` to read-write,
+ * however that doesn't work as we pass these object ref values around in a number of places, hence changing the value in IKernel will not help.
+ * E.g. in IKernel we pass them to kernel execution, cell execution, cell execution queue, etc,
+ * hence if we update a property in IKernel that isn't sufficient, we need to then ensure the same properties in cell execution, cell execution queue, kernel execution etc also have
+ * the same rea-write properties. However thats a lot of unnecessary work with the risky introduction of exposing these things as writable properties.
+ *
+ * These properties can only change when a kernel has started & the controller switches fro Kernel Spec to a live Kernel.
+ * & that logic is stored in IKernelProvider, via the call to the `update` method of this class.
  */
 export class NotebookControllerWrapper implements NotebookController {
     private readonly controllerEventHandlers: IDisposable[] = [];

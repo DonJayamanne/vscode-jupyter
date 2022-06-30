@@ -42,6 +42,7 @@ import { KernelFilterService } from './kernelFilter/kernelFilterService';
 import { IControllerRegistration, InteractiveControllerIdSuffix, IVSCodeNotebookController } from './types';
 import { VSCodeNotebookController } from './vscodeNotebookController';
 import * as path from '../../platform/vscode-path/path';
+import { waitForCondition } from '../../platform/common/utils/async';
 
 /**
  * This class keeps track of registered controllers
@@ -252,6 +253,13 @@ export class ControllerRegistration implements IControllerRegistration {
                     // Pass in the notebook editor as well, in case the notebook isn't active.
                     notebookEditor
                 });
+                const nb = this.notebook.notebookDocuments.find(
+                    (item) => item.uri.toString() === kernel.uri.toString()
+                );
+                // Ensure our code see's this controller as having been selected.
+                if (nb) {
+                    await waitForCondition(async () => liveController.isAssociatedWithDocument(nb), 5_000, 100);
+                }
             } else {
                 traceWarning(
                     `Changing to live controller failed, could not find live kernel controller for ${kernel.session?.kernel?.id}`

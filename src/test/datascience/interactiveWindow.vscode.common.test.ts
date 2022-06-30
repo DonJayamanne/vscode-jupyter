@@ -109,8 +109,17 @@ suite(`Interactive window execution`, async function () {
         assert.equal(actualSource, source, `Executed cell has unexpected source code`);
         await waitForExecutionCompletedSuccessfully(secondCell!);
         await waitForTextOutput(secondCell!, '42');
+
+        // If we're connected to a remote kernel,
+        // then ensure the kernel points to a live connection.
+        if (IS_REMOTE_NATIVE_TEST()) {
+            assert.strictEqual(
+                controllerSelection.getSelected(notebookDocument!)?.connection.kind,
+                'connectToLiveRemoteKernel'
+            );
+        }
     });
-    test('__file__ exists even after restarting a kernel', async function () {
+    test.only('__file__ exists even after restarting a kernel', async function () {
         // Ensure we click `Yes` when prompted to restart the kernel.
         disposables.push(await clickOKForRestartPrompt());
 

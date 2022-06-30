@@ -53,12 +53,12 @@ function initializeComms() {
             return;
         }
         if (handlers.has(message.command)) {
-            rendererContext.postMessage!({
-                command: 'log',
-                message: `Handled message in Widget renderer ${JSON.stringify(message)}`
-            });
             handlers.get(message.command)!(message);
         } else {
+            rendererContext.postMessage!({
+                command: 'log',
+                message: `Error: Message not handled in Widget renderer ${JSON.stringify(message)}`
+            });
             console.error('No handler for command', message.command);
         }
     });

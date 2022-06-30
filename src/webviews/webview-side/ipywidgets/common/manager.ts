@@ -143,6 +143,7 @@ export class WidgetManager implements IIPyWidgetManager, IMessageHandler {
         if (this.manager && this.proxyKernel && fastDeepEqual(options, this.options)) {
             return;
         }
+        this.options = options;
         this.proxyKernel?.dispose(); // NOSONAR
         this.proxyKernel = createKernel(options, this.postOffice, this.pendingMessages);
         this.pendingMessages = [];

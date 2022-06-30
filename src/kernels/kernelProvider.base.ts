@@ -68,6 +68,13 @@ export abstract class BaseKernelProvider implements IKernelProvider {
         } else {
             throw new Error('IKernel instantiated without passing a KernelConnectionMetadataWrapper');
         }
+
+        const nb = this.notebook.notebookDocuments.find((item) => item.uri.toString() === kernel.uri.toString());
+        const info = this.kernelsByUri.get(kernel.uri.toString()) || (nb ? this.kernelsByNotebook.get(nb) : undefined);
+        if (info) {
+            info.options.controller = controller;
+            info.options.metadata = metadata;
+        }
     }
 
     public get onDidDisposeKernel(): Event<IKernel> {

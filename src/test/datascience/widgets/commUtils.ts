@@ -20,7 +20,9 @@ export function initializeWidgetComms(serviceContainer: IServiceContainer): Util
     const utils = new Utils(messageChannel, deferred.promise);
     disposables.push(utils);
     const disposable = messageChannel.onDidReceiveMessage(async ({ editor, message }) => {
-        traceInfo(`Received message from Widget renderer ${JSON.stringify(message)}`);
+        if (message && message.command === 'log') {
+            traceInfo(`Received message from Widget renderer ${JSON.stringify(message)}`);
+        }
         if (message && message.command === 'INIT') {
             deferred.resolve(editor);
             // Redirect all of console.log, console.warn & console.error messages from
@@ -57,7 +59,6 @@ export class Utils {
         this.messageChannel.postMessage!(request, editor).then(noop, noop);
         return new Promise<string>((resolve, reject) => {
             const disposable = this.messageChannel.onDidReceiveMessage(({ message }) => {
-                traceInfo(`Received message (query) from Widget renderer ${JSON.stringify(message)}`);
                 if (message && message.requestId === request.requestId) {
                     disposable.dispose();
                     if (message.error) {

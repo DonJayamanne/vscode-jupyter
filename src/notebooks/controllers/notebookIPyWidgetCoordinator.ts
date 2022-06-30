@@ -22,6 +22,7 @@ import { IControllerSelection, IVSCodeNotebookController } from '../../notebooks
 import { IExtensionSyncActivationService } from '../../platform/activation/types';
 import { IWebviewCommunication } from '../../platform/webviews/types';
 import { CommonMessageCoordinator } from '../../kernels/ipywidgets/commonMessageCoordinator';
+import { IKernelProvider } from '../../kernels/types';
 
 class NotebookCommunication implements IWebviewCommunication, IDisposable {
     private eventHandlerListening?: boolean;
@@ -29,22 +30,60 @@ class NotebookCommunication implements IWebviewCommunication, IDisposable {
     private pendingMessages: any[] = [];
     private readonly disposables: IDisposable[] = [];
     private controllerMessageHandler?: IDisposable;
-    private controller?: IVSCodeNotebookController;
+    private _controller?: IVSCodeNotebookController;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private readonly _onDidReceiveMessage = new EventEmitter<any>();
-    constructor(public readonly editor: NotebookEditor, controller: IVSCodeNotebookController) {
+    public get controller() {
+        return this._controller!.controller!;
+    }
+    constructor(
+        public readonly editor: NotebookEditor,
+        controller: IVSCodeNotebookController,
+        private readonly controllerSelection: IControllerSelection,
+        private readonly kernelProvider: IKernelProvider
+    ) {
         this.changeController(controller);
     }
+    public get isReady() {
+        const kernel = this.kernelProvider.get(this.editor.notebook.uri);
+        if (!kernel) {
+            return false;
+        }
+        switch (kernel.kernelConnectionMetadata.kind) {
+            case 'startUsingRemoteKernelSpec':
+                // If user is initially connected to a kernel spec, then when they start the kernel,
+                // we create a live kernel and change the controller to point to that.
+                // However the kernel here is still pointing to the kernel spec, hence
+                // we need to wait for the kernel connection to change & point to the live kernel.
+                // The reason we need to wait is, when the controller changes, the webview gets re-loaded,
+                // hence the webview isn't ready, until its reloaded in this case (i.e. controller changes from kernelspec to live kernel).
+                return false;
+            case 'connectToLiveRemoteKernel':
+                const currentController = this.controllerSelection.getSelected(this.editor.notebook);
+                if (currentController?.connection.id !== kernel.kernelConnectionMetadata.id) {
+                    // Possible we've created the controller, however it hasn't been selected just yet.
+                    // In such a case we need to wait for out code to detect the change from kernel spec controller to live kernel controller.
+                    return false;
+                }
+                if (currentController.id !== this.controller.id) {
+                    // Wait till this class also detects the change to the controller (i.e. change from kernelspec to live kernel)
+                    return false;
+                }
+                return true;
+            default:
+                return true;
+        }
+    }
     public changeController(controller: IVSCodeNotebookController) {
-        if (this.controller?.id === controller.id) {
+        if (this._controller?.id === controller.id) {
             return;
         }
         this.controllerMessageHandler?.dispose();
-        this.controller = controller;
+        this._controller = controller;
         this.controllerMessageHandler = controller.onDidReceiveMessage(
             (e) => {
                 // Handle messages from this only if its still the active controller.
-                if (e.editor === this.editor && this.controller?.id === controller.id) {
+                if (e.editor === this.editor && this._controller?.id === controller.id) {
                     // If the listeners haven't been hooked up, then dont fire the event (nothing listening).
                     // Instead buffer the messages and fire the events later.
                     if (this.eventHandlerListening) {
@@ -98,13 +137,14 @@ export class NotebookIPyWidgetCoordinator implements IExtensionSyncActivationSer
      */
     public readonly notebookCommunications = new WeakMap<NotebookEditor, NotebookCommunication>();
     private readonly notebookEditors = new WeakMap<NotebookDocument, NotebookEditor[]>();
+    private controllerManager: IControllerSelection;
     constructor(
         @inject(IServiceContainer) private readonly serviceContainer: IServiceContainer,
         @inject(IDisposableRegistry) private readonly disposableRegistry: IDisposableRegistry,
-        @inject(IVSCodeNotebook) private readonly notebook: IVSCodeNotebook,
-        @inject(IControllerSelection) private readonly controllerManager: IControllerSelection
+        @inject(IVSCodeNotebook) private readonly notebook: IVSCodeNotebook
     ) {}
     public activate(): void {
+        this.controllerManager = this.serviceContainer.get<IControllerSelection>(IControllerSelection);
         this.notebook.onDidChangeVisibleNotebookEditors(
             this.onDidChangeVisibleNotebookEditors,
             this,
@@ -156,7 +196,8 @@ export class NotebookIPyWidgetCoordinator implements IExtensionSyncActivationSer
             return;
         }
         traceVerbose(`Intiailize notebook communications for editor ${getDisplayPath(editor.notebook.uri)}`);
-        const comms = new NotebookCommunication(editor, controller);
+        const kernelProvider = this.serviceContainer.get<IKernelProvider>(IKernelProvider);
+        const comms = new NotebookCommunication(editor, controller, this.controllerManager, kernelProvider);
         this.addNotebookDisposables(notebook, [comms]);
         this.notebookCommunications.set(editor, comms);
         const { token } = new CancellationTokenSource();
