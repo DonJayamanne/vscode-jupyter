@@ -89,14 +89,16 @@ export function sharedIWDebuggerTests(
 
                 traceInfo(`Ended Test ${this.currentTest?.title}`);
                 if (this.currentTest?.isFailed()) {
-                    await captureScreenShot(this.currentTest?.title);
+                    await captureScreenShot(this);
                 }
                 sinon.restore();
                 debugAdapterTracker = undefined;
                 await closeNotebooksAndCleanUpAfterTests(disposables);
             });
 
-            test('Debug a cell from a python file', async () => {
+            // Flakey test: https://github.com/microsoft/vscode-jupyter/issues/10521
+
+            test.skip('Debug a cell from a python file', async () => {
                 // Run a cell to get IW open
                 const source = 'print(42)';
                 const { activeInteractiveWindow, untitledPythonFile } = await submitFromPythonFile(

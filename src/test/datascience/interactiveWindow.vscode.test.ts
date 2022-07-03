@@ -65,7 +65,7 @@ suite(`Interactive window Execution`, async function () {
         traceInfo(`Ended Test ${this.currentTest?.title}`);
         if (this.currentTest?.isFailed()) {
             // For a flaky interrupt test.
-            await captureScreenShot(`Interactive-Tests-${this.currentTest?.title}`);
+            captureScreenShot(this);
         }
         sinon.restore();
         await closeNotebooksAndCleanUpAfterTests(disposables);
@@ -99,7 +99,8 @@ suite(`Interactive window Execution`, async function () {
         await vscode.commands.executeCommand('python.clearWorkspaceInterpreter');
     }
 
-    test('Export Interactive window to Notebook', async () => {
+    // Flakey test: https://github.com/microsoft/vscode-jupyter/issues/10649
+    test.skip('Export Interactive window to Notebook', async () => {
         const activeInteractiveWindow = await createStandaloneInteractiveWindow(interactiveWindowProvider);
         await waitForInteractiveWindow(activeInteractiveWindow);
 
@@ -132,8 +133,8 @@ suite(`Interactive window Execution`, async function () {
         );
 
         const vscodeNotebook = api.serviceContainer.get<IVSCodeNotebook>(IVSCodeNotebook);
-        await vscodeNotebook.openNotebookDocument(notebookFile);
-        let editor = await vscodeNotebook.showNotebookDocument(notebookFile, { preserveFocus: false });
+        const document = await vscodeNotebook.openNotebookDocument(notebookFile);
+        let editor = await vscodeNotebook.showNotebookDocument(document, { preserveFocus: false });
 
         const cells = editor.notebook.getCells();
         assert.strictEqual(cells?.length, 3);

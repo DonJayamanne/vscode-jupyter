@@ -312,10 +312,7 @@ export namespace DataScience {
             'Raw kernel process exited before connecting.'
         );
     export const unknownMimeTypeFormat = () =>
-        localize(
-            { key: 'DataScience.unknownMimeTypeFormat', comment: ['{Locked="Mime type"}'] },
-            'Mime type {0} is not currently supported'
-        );
+        localize('DataScience.unknownMimeTypeFormat', 'MIME type {0} is not currently supported');
     export const exportDialogTitle = () =>
         localize(
             { key: 'DataScience.exportDialogTitle', comment: ['{Locked="Notebook"}'] },
@@ -603,7 +600,7 @@ export namespace DataScience {
     export const jupyterSelectURIPrompt = () =>
         localize('DataScience.jupyterSelectURIPrompt', 'Enter the URI of the running Jupyter server');
     export const jupyterSelectURIQuickPickTitle = () =>
-        localize('DataScience.jupyterSelectURIQuickPickTitle', 'Pick how to connect to Jupyter');
+        localize('DataScience.jupyterSelectURIQuickPickTitle', 'Enter the URI of the running Jupyter server');
     export const jupyterSelectURIQuickPickPlaceholder = () =>
         localize('DataScience.jupyterSelectURIQuickPickPlaceholder', 'Choose an option');
     export const jupyterSelectURIQuickPickCurrent = () =>
@@ -1364,6 +1361,14 @@ export namespace DataScience {
         localize('DataScience.webNotSupported', `Operation not supported in web version of Jupyter Extension.`);
     export const validationErrorMessageForRemoteUrlProtocolNeedsToBeHttpOrHttps = () =>
         localize('DataScience.validationErrorMessageForRemoteUrlProtocolNeedsToBeHttpOrHttps', 'Has to be http(s)');
+    export const pickLocalKernelTitle = () => localize('DataScience.pickLocalKernelTitle', `Select a Local Kernel`);
+    export const pickLocalKernelPlaceholder = () =>
+        localize('DataScience.pickLocalKernelPlaceholder', `type to filter`);
+    export const pickRemoteKernelTitle = () => localize('DataScience.pickRemoteKernelTitle', `Select a Remote Kernel`);
+    export const pickRemoteKernelPlaceholder = () =>
+        localize('DataScience.pickRemoteKernelPlaceholder', `type to filter`);
+    export const failedToInstallPythonExtension = () =>
+        localize('DataScience.failedToInstallPythonExtension', `Failed to install the Python Extension.`);
 }
 
 export namespace Installer {

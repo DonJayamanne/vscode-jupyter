@@ -75,7 +75,7 @@ suite('VSCode Notebook - Run By Line', function () {
         traceInfo(`Ended Test ${this.currentTest?.title}`);
         if (this.currentTest?.isFailed()) {
             // For a flaky interrupt test.
-            await captureScreenShot(`Debugger-Tests-${this.currentTest?.title}`);
+            captureScreenShot(this);
         }
         await closeNotebooks(disposables);
         await closeNotebooksAndCleanUpAfterTests(disposables);
@@ -118,7 +118,7 @@ suite('VSCode Notebook - Run By Line', function () {
             );
 
             // Give the files a quick chance to clean up
-            await sleep(1000);
+            await sleep(3000);
 
             // Now that we have finished the temp directory should be empty
             assert.isDefined(folderName, 'Failed to create an ipykernel debug temp folder');
