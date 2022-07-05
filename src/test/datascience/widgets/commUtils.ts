@@ -8,10 +8,11 @@ import { IDisposable, IDisposableRegistry } from '../../../platform/common/types
 import { createDeferred } from '../../../platform/common/utils/async';
 import { IServiceContainer } from '../../../platform/ioc/types';
 import { noop } from '../../core';
+import { IPyWidgetRendererId } from '../../../platform/common/constants';
 
 export function initializeWidgetComms(serviceContainer: IServiceContainer): Utils {
     const disposables = serviceContainer.get<IDisposableRegistry>(IDisposableRegistry);
-    const messageChannel = notebooks.createRendererMessaging('jupyter-ipywidget-renderer');
+    const messageChannel = notebooks.createRendererMessaging(IPyWidgetRendererId);
     if (!messageChannel) {
         throw new Error('No Widget renderer comms channel');
     }

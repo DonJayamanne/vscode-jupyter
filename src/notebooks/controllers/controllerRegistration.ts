@@ -226,7 +226,7 @@ export class ControllerRegistration implements IControllerRegistration {
                     },
                     name: kernel.session.kernel.name,
                     numberOfConnections: 1,
-                    lastActivityTime: new Date(Date.now()),
+                    lastActivityTime: new Date(),
                     id: kernel.session.kernel.id
                 },
                 serverId: kernel.kernelConnectionMetadata.serverId,

@@ -6,7 +6,7 @@
 import type { KernelMessage } from '@jupyterlab/services';
 import { Event, EventEmitter, NotebookDocument, notebooks } from 'vscode';
 import { IApplicationShell, ICommandManager, IVSCodeNotebook } from '../../platform/common/application/types';
-import { STANDARD_OUTPUT_CHANNEL } from '../../platform/common/constants';
+import { IPyWidgetRendererId, STANDARD_OUTPUT_CHANNEL } from '../../platform/common/constants';
 import { traceVerbose, traceError, traceInfo, traceInfoIfCI } from '../../platform/logging';
 import { IDisposableRegistry, IOutputChannel, IConfigurationService, IHttpClient } from '../../platform/common/types';
 import { Common, DataScience } from '../../platform/common/utils/localize';
@@ -151,7 +151,7 @@ export class CommonMessageCoordinator {
                         if (nbEditor) {
                             traceInfoIfCI('Re-rendering widgets');
                             notebooks
-                                .createRendererMessaging('jupyter-ipywidget-renderer')
+                                .createRendererMessaging(IPyWidgetRendererId)
                                 .postMessage({ type: IPyWidgetMessages.IPyWidgets_ReRenderWidgets }, nbEditor)
                                 .then(noop, noop);
                         }
