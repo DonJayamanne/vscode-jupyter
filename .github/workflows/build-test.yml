@@ -356,6 +356,7 @@ jobs:
       matrix:
         jupyter: [raw, local]
         python: [nonConda, conda]
+        webOrDesktop: ['']
         pythonVersion: ['3.9', '3.10']
         webOrDesktop: ['']
         # Whether we're using stable (<empty>) or pre-release versions of Python packages.
