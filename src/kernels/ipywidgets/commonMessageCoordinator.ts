@@ -127,8 +127,8 @@ export class CommonMessageCoordinator {
                             const nbEditor = this.serviceContainer
                                 .get<IVSCodeNotebook>(IVSCodeNotebook)
                                 .notebookEditors.find((item) => item.notebook === this.document);
-                            // With remote kernel specs, once the kernel is ready we create a live kernel controller and 
-                            // switch to that. At that point the webview also changes, hence 
+                            // With remote kernel specs, once the kernel is ready we create a live kernel controller and
+                            // switch to that. At that point the webview also changes, hence
                             // there's no need to render anything while were in this state.
                             notebooks
                                 .createRendererMessaging(IPyWidgetRendererId)
