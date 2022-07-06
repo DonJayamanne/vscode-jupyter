@@ -124,6 +124,16 @@ export class CommonMessageCoordinator {
                             traceInfoIfCI(
                                 'Web view is not ready to receive widget messages (kernel points to remote kernel spec)'
                             );
+                            const nbEditor = this.serviceContainer
+                                .get<IVSCodeNotebook>(IVSCodeNotebook)
+                                .notebookEditors.find((item) => item.notebook === this.document);
+                            // With remote kernel specs, once the kernel is ready we create a live kernel controller and 
+                            // switch to that. At that point the webview also changes, hence 
+                            // there's no need to render anything while were in this state.
+                            notebooks
+                                .createRendererMessaging(IPyWidgetRendererId)
+                                .postMessage({ type: IPyWidgetMessages.IPyWidgets_DoNotRenderWidgets }, nbEditor)
+                                .then(noop, noop);
                             return;
                         }
                         if (!webview.isReady) {
