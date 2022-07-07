@@ -358,7 +358,7 @@ jobs:
         python: [nonConda]
         webOrDesktop: ['web']
         pythonVersion: ['3.9']
-        webOrDesktop: ['']
+        # webOrDesktop: ['']
         # Whether we're using stable (<empty>) or pre-release versions of Python packages.
         # When installing pre-release versions, we're only focused on jupyter & related packages.
         # Not pre-release versions of pandas, numpy or other such packages that are not core to Jupyter.
