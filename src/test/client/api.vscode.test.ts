@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 import { assert } from 'chai';
@@ -19,6 +20,7 @@ import { captureScreenShot, createEventHandler, IExtensionTestApi } from '../com
 import { IVSCodeNotebook } from '../../platform/common/application/types';
 import { IS_REMOTE_NATIVE_TEST } from '../constants.node';
 import { workspace } from 'vscode';
+import { KernelConnectionMetadata } from '../../kernels/types';
 
 // eslint-disable-next-line
 suite('3rd Party Kernel Service API', function () {
@@ -65,6 +67,53 @@ suite('3rd Party Kernel Service API', function () {
     });
     suiteTeardown(() => closeNotebooksAndCleanUpAfterTests(disposables));
 
+    function getMetadataForComparison(metadata: KernelConnectionMetadata) {
+        metadata = JSON.parse(JSON.stringify(metadata));
+        if ('kernelSpec' in metadata) {
+            metadata.kernelSpec.specFile = undefined;
+        }
+        return metadata;
+    }
+    function compareKernelConnectionMetadata(a: KernelConnectionMetadata, b: KernelConnectionMetadata) {
+        const aJson = getMetadataForComparison(a);
+        // Sometimes on CI, the python path can differ for the same interpreter.
+        // Take that into account,
+        // E.g. the same interpreter could have the path as `"interpreterPath": "/opt/hostedtoolcache/Python/3.9.13/x64/bin/python",` as well
+        // as "interpreterPath": "/opt/hostedtoolcache/Python/3.9.13/x64/python",
+        // Provided the kernelspecs have the same Id, we should be ok, hence don't compare these paths.
+        if (a.interpreter?.uri) {
+            aJson.interpreter!.uri = a.interpreter.uri.toString() as any;
+        }
+        if (aJson.interpreter) {
+            delete (aJson.interpreter as any).id;
+            delete (aJson.interpreter as any).sysPrefix;
+        }
+        if ('kernelSpec' in aJson && aJson.kernelSpec.metadata) {
+            delete aJson.kernelSpec.metadata.interpreter;
+            delete aJson.kernelSpec.interpreterPath;
+        }
+        const bJson = getMetadataForComparison(b);
+        if (b.interpreter?.uri) {
+            bJson.interpreter!.uri = b.interpreter.uri.toString() as any;
+        }
+        if (bJson.interpreter) {
+            delete (bJson.interpreter as any).id;
+            delete (bJson.interpreter as any).sysPrefix;
+        }
+        if ('kernelSpec' in bJson && bJson.kernelSpec.metadata) {
+            delete bJson.kernelSpec.metadata.interpreter;
+            delete bJson.kernelSpec.interpreterPath;
+        }
+        assert.deepEqual(
+            aJson,
+            bJson,
+            `Kernel Connection is not the same, actual ${JSON.stringify(
+                aJson,
+                undefined,
+                3
+            )}, expected ${JSON.stringify(bJson, undefined, 3)}`
+        );
+    }
     test('List kernel specs', async () => {
         const kernelService = await api.getKernelService();
 
@@ -132,9 +181,9 @@ suite('3rd Party Kernel Service API', function () {
             'Kernel notebook is not the active notebook'
         );
 
-        assert.strictEqual(kernels![0].metadata, pythonKernel, 'Kernel Connection is not the same');
+        compareKernelConnectionMetadata(kernels![0].metadata as any, pythonKernel as any);
         const kernel = kernelService?.getKernel(nb.uri);
-        assert.strictEqual(kernels![0].metadata, kernel!.metadata, 'Kernel Connection not same for the document');
+        compareKernelConnectionMetadata(kernels![0].metadata as any, kernel!.metadata as any);
 
         await closeNotebooksAndCleanUpAfterTests(disposables);
 

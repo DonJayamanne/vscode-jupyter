@@ -122,6 +122,7 @@ export class WidgetManager implements IIPyWidgetManager, IMessageHandler {
         // Once all messages prior to this have been processed in sequence and this message is received,
         // then, and only then are we ready to render the widget.
         // I.e. this is a way of synchronizing the render with the processing of the messages.
+        logMessage(`Waiting for model to be available before rendering it ${data.model_id}`);
         await this.modelIdsToBeDisplayed.get(modelId)!.promise;
 
         const modelPromise = this.manager.get_model(data.model_id);
@@ -143,6 +144,7 @@ export class WidgetManager implements IIPyWidgetManager, IMessageHandler {
         if (this.manager && this.proxyKernel && fastDeepEqual(options, this.options)) {
             return;
         }
+        this.options = options;
         this.proxyKernel?.dispose(); // NOSONAR
         this.proxyKernel = createKernel(options, this.postOffice, this.pendingMessages);
         this.pendingMessages = [];
@@ -191,11 +193,11 @@ export class WidgetManager implements IIPyWidgetManager, IMessageHandler {
             return;
         }
         const displayMsg = payload as KernelMessage.IDisplayDataMsg | KernelMessage.IExecuteResultMsg;
-
         if (displayMsg.content && displayMsg.content.data && displayMsg.content.data[WIDGET_MIMETYPE]) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const data = displayMsg.content.data[WIDGET_MIMETYPE] as any;
             const modelId = data.model_id;
+            logMessage(`Received display data message ${modelId}`);
             let deferred = this.modelIdsToBeDisplayed.get(modelId);
             if (!deferred) {
                 deferred = createDeferred();

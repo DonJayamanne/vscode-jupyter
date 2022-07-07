@@ -38,7 +38,7 @@ import { chainable } from '../platform/common/utils/decorators';
 import * as localize from '../platform/common/utils/localize';
 import { noop } from '../platform/common/utils/misc';
 import { IServiceContainer } from '../platform/ioc/types';
-import { KernelConnectionMetadata } from '../kernels/types';
+import { IKernelProvider, KernelConnectionMetadata } from '../kernels/types';
 import { IEmbedNotebookEditorProvider, INotebookEditorProvider } from '../notebooks/types';
 import { InteractiveWindow } from './interactiveWindow';
 import { InteractiveWindowView, JVSC_EXTENSION_ID, NotebookCellScheme } from '../platform/common/constants';
@@ -182,7 +182,6 @@ export class InteractiveWindowProvider
                 mode,
                 this.serviceContainer.get<IExportDialog>(IExportDialog),
                 this.serviceContainer.get<IControllerSelection>(IControllerSelection),
-                this.serviceContainer,
                 this.serviceContainer.tryGet<IInteractiveWindowDebugger>(IInteractiveWindowDebugger),
                 this.serviceContainer.get<IDataScienceErrorHandler>(IDataScienceErrorHandler),
                 preferredController,
@@ -192,7 +191,9 @@ export class InteractiveWindowProvider
                 this.serviceContainer.get<ICodeGeneratorFactory>(ICodeGeneratorFactory),
                 this.serviceContainer.get<IGeneratedCodeStorageFactory>(IGeneratedCodeStorageFactory),
                 this.serviceContainer.get<IInteractiveWindowDebuggingManager>(IInteractiveWindowDebuggingManager),
-                this.serviceContainer.get<boolean>(IsWebExtension)
+                this.serviceContainer.get<boolean>(IsWebExtension),
+                this.serviceContainer.get<IControllerRegistration>(IControllerRegistration),
+                this.serviceContainer.get<IKernelProvider>(IKernelProvider)
             );
             this._windows.push(result);
 

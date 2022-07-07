@@ -4079,7 +4079,7 @@ No properties for event
             const telemetryEvent = isLocalConnection(this.kernelConnection)
                 ? Telemetry.SelectLocalJupyterKernel
                 : Telemetry.SelectRemoteJupyterKernel;
-            sendKernelTelemetryEvent(document.uri, telemetryEvent);
+            sendKernelTelemetryEvent(notebook.uri, telemetryEvent);
             this.notebookApi.notebookEditors
 ```
 
@@ -4106,9 +4106,9 @@ No properties for event
             const telemetryEvent = isLocalConnection(this.kernelConnection)
                 ? Telemetry.SelectLocalJupyterKernel
                 : Telemetry.SelectRemoteJupyterKernel;
-            sendKernelTelemetryEvent(document.uri, telemetryEvent);
+            sendKernelTelemetryEvent(notebook.uri, telemetryEvent);
             this.notebookApi.notebookEditors
-                .filter((editor) => editor.notebook === document)
+                .filter((editor) => editor.notebook === notebook)
 ```
 
 </details>
@@ -8587,7 +8587,7 @@ No properties for event
             default:
             // We don't know as its the default kernel on Jupyter server.
         }
-        sendKernelTelemetryEvent(document.uri, Telemetry.SwitchKernel);
+        sendKernelTelemetryEvent(notebook.uri, Telemetry.SwitchKernel);
         // If we have an existing kernel, then we know for a fact the user is changing the kernel.
         // Else VSC is just setting a kernel for a notebook after it has opened.
         if (existingKernel) {

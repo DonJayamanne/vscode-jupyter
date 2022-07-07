@@ -209,7 +209,8 @@ export class KernelConnector {
         }>,
         actionSource: KernelActionSource,
         onAction: (action: KernelAction, kernel: IKernel) => void,
-        disposables: IDisposable[]
+        disposables: IDisposable[],
+        onActionCompleted: (action: KernelAction, actionSource: KernelActionSource, kernel: IKernel) => Promise<void>
     ): Promise<IKernel> {
         const { kernel, deadKernelAction } = await promise;
         // Before returning, but without disposing the kernel, double check it's still valid
@@ -234,7 +235,8 @@ export class KernelConnector {
                 notebookResource,
                 options,
                 disposables,
-                onAction
+                onAction,
+                onActionCompleted
             );
         }
         return kernel;
@@ -249,7 +251,12 @@ export class KernelConnector {
         notebookResource: NotebookResource,
         options: IDisplayOptions,
         disposables: IDisposable[],
-        onAction: (action: KernelAction, kernel: IKernel) => void = () => noop()
+        onAction: (action: KernelAction, kernel: IKernel) => void = () => noop(),
+        onActionCompleted: (
+            action: KernelAction,
+            actionSource: KernelActionSource,
+            kernel: IKernel
+        ) => Promise<void> = () => Promise.resolve()
     ): Promise<IKernel> {
         traceVerbose(`${initialContext} the kernel, options.disableUI=${options.disableUI}`);
 
@@ -277,7 +284,8 @@ export class KernelConnector {
                 currentPromise.kernel.promise,
                 actionSource,
                 onAction,
-                disposables
+                disposables,
+                onActionCompleted
             );
         }
 
@@ -289,7 +297,8 @@ export class KernelConnector {
             notebookResource,
             options,
             actionSource,
-            onAction
+            onAction,
+            onActionCompleted
         );
         const deferred = createDeferredFromPromise(promise);
         deferred.promise.catch(noop);
@@ -316,7 +325,8 @@ export class KernelConnector {
             deferred.promise,
             actionSource,
             onAction,
-            disposables
+            disposables,
+            onActionCompleted
         );
     }
     private static getKernelInfo(notebookResource: NotebookResource) {
@@ -376,7 +386,8 @@ export class KernelConnector {
         notebookResource: NotebookResource,
         options: IDisplayOptions,
         actionSource: KernelActionSource,
-        onAction: (action: KernelAction, kernel: IKernel) => void
+        onAction: (action: KernelAction, kernel: IKernel) => void,
+        onActionCompleted: (action: KernelAction, actionSource: KernelActionSource, kernel: IKernel) => Promise<void>
     ): Promise<{
         kernel: IKernel;
         deadKernelAction?: 'deadKernelWasRestarted' | 'deadKernelWasNoRestarted';
@@ -406,6 +417,9 @@ export class KernelConnector {
                 // & if the kernel is dead, prompt to restart.
                 if (initialContext !== 'restart' && isKernelDead(kernel) && !options.disableUI) {
                     const restarted = await KernelConnector.notifyAndRestartDeadKernel(kernel, serviceContainer);
+                    if (restarted) {
+                        await onActionCompleted('restart', actionSource, kernel);
+                    }
                     return {
                         kernel,
                         deadKernelAction: restarted ? 'deadKernelWasRestarted' : 'deadKernelWasNoRestarted'
@@ -419,6 +433,7 @@ export class KernelConnector {
                         await KernelConnector.notifyAndRestartDeadKernel(kernel, serviceContainer);
                     }
                 }
+                await onActionCompleted(currentContext, actionSource, kernel);
             } catch (error) {
                 if (!isCancellationError(error)) {
                     traceWarning(
@@ -466,7 +481,12 @@ export class KernelConnector {
         options: IDisplayOptions,
         disposables: IDisposable[],
         actionSource: KernelActionSource = 'jupyterExtension',
-        onAction: (action: KernelAction, kernel: IKernel) => void = () => noop()
+        onAction: (action: KernelAction, kernel: IKernel) => void = () => noop(),
+        onActionCompleted: (
+            action: KernelAction,
+            actionSource: KernelActionSource,
+            kernel: IKernel
+        ) => Promise<void> = () => Promise.resolve()
     ): Promise<IKernel> {
         return KernelConnector.wrapKernelMethod(
             controller,
@@ -477,7 +497,8 @@ export class KernelConnector {
             notebookResource,
             options,
             disposables,
-            onAction
+            onAction,
+            onActionCompleted
         );
     }
 }

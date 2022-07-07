@@ -3,15 +3,17 @@
 
 import { NotebookCell, NotebookEditor, NotebookRendererMessaging, notebooks } from 'vscode';
 import { disposeAllDisposables } from '../../../platform/common/helpers';
-import { traceInfo } from '../../../platform/logging';
+import { traceInfo, traceInfoIfCI } from '../../../platform/logging';
 import { IDisposable, IDisposableRegistry } from '../../../platform/common/types';
 import { createDeferred } from '../../../platform/common/utils/async';
 import { IServiceContainer } from '../../../platform/ioc/types';
 import { noop } from '../../core';
+import { IPyWidgetRendererId } from '../../../platform/common/constants';
+import * as colors from 'colors';
 
 export function initializeWidgetComms(serviceContainer: IServiceContainer): Utils {
     const disposables = serviceContainer.get<IDisposableRegistry>(IDisposableRegistry);
-    const messageChannel = notebooks.createRendererMessaging('jupyter-ipywidget-renderer');
+    const messageChannel = notebooks.createRendererMessaging(IPyWidgetRendererId);
     if (!messageChannel) {
         throw new Error('No Widget renderer comms channel');
     }
@@ -19,8 +21,12 @@ export function initializeWidgetComms(serviceContainer: IServiceContainer): Util
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     const utils = new Utils(messageChannel, deferred.promise);
     disposables.push(utils);
+    traceInfoIfCI(`Adding comm message handler`);
     const disposable = messageChannel.onDidReceiveMessage(async ({ editor, message }) => {
-        traceInfo(`Received message from Widget renderer ${JSON.stringify(message)}`);
+        if (message && message.command === 'log') {
+            const messageToLog = message.category === 'error' ? colors.red(message.message) : message.message;
+            traceInfo(`${colors.yellow('Widget renderer')}: ${messageToLog}`);
+        }
         if (message && message.command === 'INIT') {
             deferred.resolve(editor);
             // Redirect all of console.log, console.warn & console.error messages from
@@ -28,7 +34,12 @@ export function initializeWidgetComms(serviceContainer: IServiceContainer): Util
             messageChannel.postMessage({ command: 'hijackLogging' }, editor).then(noop, noop);
         }
     });
-    disposables.push(disposable);
+    disposables.push({
+        dispose: () => {
+            traceInfoIfCI(`Disposing comm message handler`);
+            disposable.dispose();
+        }
+    });
     return utils;
 }
 
@@ -57,7 +68,6 @@ export class Utils {
         this.messageChannel.postMessage!(request, editor).then(noop, noop);
         return new Promise<string>((resolve, reject) => {
             const disposable = this.messageChannel.onDidReceiveMessage(({ message }) => {
-                traceInfo(`Received message (query) from Widget renderer ${JSON.stringify(message)}`);
                 if (message && message.requestId === request.requestId) {
                     disposable.dispose();
                     if (message.error) {
