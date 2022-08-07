@@ -63,7 +63,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - run: ${{ github.action_path }}/install-azure-cli.sh
+    - run: ./install-azure-cli.sh
       shell: bash
 
     - run: |
