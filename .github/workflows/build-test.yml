@@ -64,6 +64,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+    - run: |
+        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
     - uses: azure/login@v1
       with:
         creds: ${{ secrets.LOG_ID }}
