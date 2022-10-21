@@ -28,7 +28,7 @@ import { Kernel } from '@jupyterlab/services';
 import { CellExecutionCreator } from './cellExecutionCreator';
 import { IApplicationShell } from '../../platform/common/application/types';
 import { disposeAllDisposables } from '../../platform/common/helpers';
-import { traceError, traceWarning } from '../../platform/logging';
+import { traceError, traceInfoIfCI, traceWarning } from '../../platform/logging';
 import { IDisposable, IExtensionContext } from '../../platform/common/types';
 import { concatMultilineString, formatStreamText, isJupyterNotebook } from '../../platform/common/utils';
 import {
@@ -113,6 +113,7 @@ export class CellExecutionMessageHandler implements IDisposable {
     private temporaryExecution?: NotebookCellExecution;
     private previousResultsToRestore?: NotebookCellExecutionSummary;
     private cellHasErrorsInOutput?: boolean;
+    private disposed?: boolean;
 
     public get hasErrorOutput() {
         return this.cellHasErrorsInOutput === true;
@@ -233,7 +234,11 @@ export class CellExecutionMessageHandler implements IDisposable {
      * Or when execution has been cancelled.
      */
     public dispose() {
-        traceCellMessage(this.cell, 'Execution disposed');
+        if (this.disposed) {
+            return;
+        }
+        this.disposed = true;
+        traceCellMessage(this.cell, 'Execution Message Handler disposed');
         disposeAllDisposables(this.disposables);
         this.prompts.forEach((item) => item.dispose());
         this.prompts.clear();
@@ -898,9 +903,11 @@ export class CellExecutionMessageHandler implements IDisposable {
 
     private handleError(msg: KernelMessage.IErrorMsg) {
         let traceback = msg.content.traceback;
+        traceInfoIfCI(`Traceback for error ${traceback}`);
         this.formatters.forEach((formatter) => {
             traceback = formatter.format(this.cell, traceback);
         });
+        traceInfoIfCI(`Traceback for error after formatting ${traceback}`);
         const output: nbformat.IError = {
             output_type: 'error',
             ename: msg.content.ename,
