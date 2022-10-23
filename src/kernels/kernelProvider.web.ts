@@ -26,7 +26,7 @@ import {
 import { IJupyterServerUriStorage } from './jupyter/types';
 import { createKernelSettings } from './kernelSettings';
 import { NotebookKernelExecution } from './kernelExecution';
-import { KernelExecution, ThirdPartyKernelExecution } from './execution/kernelExecution';
+import { KernelExecution } from './execution/kernelExecution';
 
 /**
  * Web version of a kernel provider. Needed in order to create the web version of a kernel.
@@ -58,16 +58,7 @@ export class KernelProvider extends BaseCoreKernelProvider {
 
         const resourceUri = notebook?.notebookType === InteractiveWindowView ? options.resourceUri : notebook.uri;
         const settings = createKernelSettings(this.configService, resourceUri);
-        const kernelExecution = new KernelExecution(
-            options.controller,
-            resourceUri,
-            options.metadata,
-            notebook,
-            this.appShell,
-            settings.interruptTimeout,
-            this.context,
-            this.formatters
-        );
+        const kernelExecution = new KernelExecution(resourceUri, options.metadata, settings.interruptTimeout);
         const kernel = new Kernel(
             resourceUri,
             notebook,
@@ -87,7 +78,10 @@ export class KernelProvider extends BaseCoreKernelProvider {
             this,
             this.disposables
         );
-        this.executions.set(kernel, new NotebookKernelExecution(kernel, kernelExecution));
+        this.executions.set(
+            kernel,
+            new NotebookKernelExecution(kernel, kernelExecution, this.appShell, this.context, this.formatters, notebook)
+        );
         this.asyncDisposables.push(kernel);
         this.storeKernel(notebook, options, kernel);
 
@@ -119,7 +113,7 @@ export class ThirdPartyKernelProvider extends BaseThirdPartyKernelProvider {
 
         const resourceUri = uri;
         const settings = createKernelSettings(this.configService, resourceUri);
-        const kernelExecution = new ThirdPartyKernelExecution(resourceUri, options.metadata, settings.interruptTimeout);
+        const kernelExecution = new KernelExecution(resourceUri, options.metadata, settings.interruptTimeout);
         const kernel = new ThirdPartyKernel(
             uri,
             resourceUri,

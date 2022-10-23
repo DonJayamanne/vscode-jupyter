@@ -3,40 +3,26 @@
 
 'use strict';
 
-import { EventEmitter, NotebookCell, NotebookCellKind, NotebookDocument, workspace } from 'vscode';
-import { CellExecutionFactory } from './cellExecution';
-import { CellExecutionQueue } from './cellExecutionQueue';
 import { KernelMessage } from '@jupyterlab/services';
-import { IApplicationShell } from '../../platform/common/application/types';
-import { traceInfo, traceInfoIfCI, traceVerbose, traceWarning } from '../../platform/logging';
-import { IDisposable, IExtensionContext, Resource } from '../../platform/common/types';
+import { traceInfo, traceInfoIfCI, traceWarning } from '../../platform/logging';
+import { IDisposable, Resource } from '../../platform/common/types';
 import { createDeferred, waitForPromise } from '../../platform/common/utils/async';
 import { StopWatch } from '../../platform/common/utils/stopWatch';
 import { sendKernelTelemetryEvent } from '../telemetry/sendKernelTelemetryEvent';
 import { Telemetry } from '../../telemetry';
-import {
-    IKernelConnectionSession,
-    InterruptResult,
-    ITracebackFormatter,
-    NotebookCellRunState,
-    IKernelController,
-    KernelConnectionMetadata
-} from '../../kernels/types';
-import { traceCellMessage } from './helpers';
-import { getDisplayPath } from '../../platform/common/platform/fs-paths';
-import { CellExecutionMessageHandlerService } from './cellExecutionMessageHandlerService';
+import { IKernelConnectionSession, InterruptResult, KernelConnectionMetadata } from '../../kernels/types';
 import { noop } from '../../platform/common/utils/misc';
 
 /**
  * Separate class that deals just with kernel execution.
  * Else the `Kernel` class gets very big.
  */
-export class BaseKernelExecution implements IDisposable {
+export class KernelExecution implements IDisposable {
     protected readonly disposables: IDisposable[] = [];
     private _interruptPromise?: Promise<InterruptResult>;
     private _restartPromise?: Promise<void>;
     private disposed?: boolean;
-    protected get restarting() {
+    public get restarting() {
         return this._restartPromise || Promise.resolve();
     }
     constructor(
@@ -190,153 +176,5 @@ export class BaseKernelExecution implements IDisposable {
     private async restartExecution(session: IKernelConnectionSession): Promise<void> {
         // Just use the internal session. Pending cells should have been canceled by the caller
         await session.restart();
-    }
-}
-
-export class ThirdPartyKernelExecution extends BaseKernelExecution {}
-
-/**
- * Separate class that deals just with kernel execution.
- * Else the `Kernel` class gets very big.
- */
-export class KernelExecution extends BaseKernelExecution {
-    private readonly documentExecutions = new WeakMap<NotebookDocument, CellExecutionQueue>();
-    private readonly executionFactory: CellExecutionFactory;
-    private readonly _onPreExecute = new EventEmitter<NotebookCell>();
-    constructor(
-        controller: IKernelController,
-        resourceUri: Resource,
-        kernelConnectionMetadata: KernelConnectionMetadata,
-        private readonly notebook: NotebookDocument,
-        appShell: IApplicationShell,
-        interruptTimeout: number,
-        context: IExtensionContext,
-        formatters: ITracebackFormatter[]
-    ) {
-        super(resourceUri, kernelConnectionMetadata, interruptTimeout);
-        const requestListener = new CellExecutionMessageHandlerService(appShell, controller, context, formatters);
-        this.disposables.push(requestListener);
-        this.executionFactory = new CellExecutionFactory(controller, requestListener);
-    }
-
-    public get onPreExecute() {
-        return this._onPreExecute.event;
-    }
-    public get queue() {
-        return this.documentExecutions.get(this.notebook)?.queue || [];
-    }
-    public async executeCell(
-        sessionPromise: Promise<IKernelConnectionSession>,
-        cell: NotebookCell,
-        codeOverride?: string
-    ): Promise<NotebookCellRunState> {
-        traceCellMessage(cell, `KernelExecution.executeCell (1), ${getDisplayPath(cell.notebook.uri)}`);
-        if (cell.kind == NotebookCellKind.Markup) {
-            return NotebookCellRunState.Success;
-        }
-
-        // If we're restarting, wait for it to finish
-        await this.restarting;
-
-        traceCellMessage(cell, `KernelExecution.executeCell (2), ${getDisplayPath(cell.notebook.uri)}`);
-        const executionQueue = this.getOrCreateCellExecutionQueue(cell.notebook, sessionPromise);
-        executionQueue.queueCell(cell, codeOverride);
-        const result = await executionQueue.waitForCompletion([cell]);
-        traceCellMessage(cell, `KernelExecution.executeCell completed (3), ${getDisplayPath(cell.notebook.uri)}`);
-        return result[0];
-    }
-    public override async cancel() {
-        await super.cancel();
-        const executionQueue = this.documentExecutions.get(this.notebook);
-        if (executionQueue) {
-            await executionQueue.cancel(true);
-        }
-    }
-
-    /**
-     * Interrupts the execution of cells.
-     * If we don't have a kernel (Jupyter Session) available, then just abort all of the cell executions.
-     */
-    public override async interrupt(sessionPromise?: Promise<IKernelConnectionSession>): Promise<InterruptResult> {
-        const executionQueue = this.documentExecutions.get(this.notebook);
-        if (!executionQueue && this.kernelConnectionMetadata.kind !== 'connectToLiveRemoteKernel') {
-            return InterruptResult.Success;
-        }
-        return super.interrupt(sessionPromise);
-    }
-    protected override async cancelPendingExecutions(): Promise<void> {
-        const executionQueue = this.documentExecutions.get(this.notebook);
-        if (!executionQueue && this.kernelConnectionMetadata.kind !== 'connectToLiveRemoteKernel') {
-            return;
-        }
-        traceInfo('Interrupt kernel execution');
-        // First cancel all the cells & then wait for them to complete.
-        // Both must happen together, we cannot just wait for cells to complete, as its possible
-        // that cell1 has started & cell2 has been queued. If Cell1 completes, then Cell2 will start.
-        // What we want is, if Cell1 completes then Cell2 should not start (it must be cancelled before hand).
-        const pendingCells = executionQueue
-            ? executionQueue.cancel().then(() => executionQueue.waitForCompletion())
-            : Promise.resolve();
-
-        await pendingCells;
-    }
-    /**
-     * Restarts the kernel
-     * If we don't have a kernel (Jupyter Session) available, then just abort all of the cell executions.
-     */
-    public override async restart(sessionPromise?: Promise<IKernelConnectionSession>): Promise<void> {
-        const executionQueue = this.documentExecutions.get(this.notebook);
-        // Possible we don't have a notebook.
-        const session = sessionPromise ? await sessionPromise.catch(() => undefined) : undefined;
-        traceInfo('Restart kernel execution');
-        // First cancel all the cells & then wait for them to complete.
-        // Both must happen together, we cannot just wait for cells to complete, as its possible
-        // that cell1 has started & cell2 has been queued. If Cell1 completes, then Cell2 will start.
-        // What we want is, if Cell1 completes then Cell2 should not start (it must be cancelled before hand).
-        const pendingCells = executionQueue
-            ? executionQueue.cancel(true).then(() => executionQueue.waitForCompletion())
-            : Promise.resolve();
-
-        if (!session) {
-            traceInfo('No kernel session to interrupt');
-            await pendingCells;
-        }
-
-        return super.restart(sessionPromise);
-    }
-    private getOrCreateCellExecutionQueue(
-        document: NotebookDocument,
-        sessionPromise: Promise<IKernelConnectionSession>
-    ) {
-        const existingExecutionQueue = this.documentExecutions.get(document);
-        // Re-use the existing Queue if it can be used.
-        if (existingExecutionQueue && !existingExecutionQueue.isEmpty && !existingExecutionQueue.failed) {
-            return existingExecutionQueue;
-        }
-
-        const newCellExecutionQueue = new CellExecutionQueue(
-            sessionPromise,
-            this.executionFactory,
-            this.kernelConnectionMetadata,
-            this.resourceUri
-        );
-        this.disposables.push(newCellExecutionQueue);
-
-        // If the document is closed (user or on CI), then just stop handling the UI updates & cancel cell execution queue.
-        workspace.onDidCloseNotebookDocument(
-            async (e: NotebookDocument) => {
-                if (e === document) {
-                    traceVerbose(`Cancel executions after closing notebook ${getDisplayPath(e.uri)}`);
-                    if (!newCellExecutionQueue.failed || !newCellExecutionQueue.isEmpty) {
-                        await newCellExecutionQueue.cancel(true);
-                    }
-                }
-            },
-            this,
-            this.disposables
-        );
-        newCellExecutionQueue.onPreExecute((c) => this._onPreExecute.fire(c), this, this.disposables);
-        this.documentExecutions.set(document, newCellExecutionQueue);
-        return newCellExecutionQueue;
     }
 }

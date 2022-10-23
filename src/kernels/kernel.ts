@@ -54,12 +54,12 @@ import { Cancellation, isCancellationError } from '../platform/common/cancellati
 import { KernelProgressReporter } from '../platform/progress/kernelProgressReporter';
 import { DisplayOptions } from './displayOptions';
 import { SilentExecutionErrorOptions } from './helpers';
-import { BaseKernelExecution, KernelExecution, ThirdPartyKernelExecution } from './execution/kernelExecution';
+import { KernelExecution } from './execution/kernelExecution';
 
 /**
  * Represents an active kernel process running on the jupyter (or local) machine.
  */
-abstract class BaseKernel<TKernelExecution extends BaseKernelExecution> implements IBaseKernel {
+abstract class BaseKernel implements IBaseKernel {
     protected readonly disposables: IDisposable[] = [];
     get onStatusChanged(): Event<KernelMessage.Status> {
         return this._onStatusChanged.event;
@@ -120,10 +120,10 @@ abstract class BaseKernel<TKernelExecution extends BaseKernelExecution> implemen
     private readonly _onDisposed = new EventEmitter<void>();
     private _jupyterSessionPromise?: Promise<IKernelConnectionSession>;
     private readonly hookedSessionForEvents = new WeakSet<IKernelConnectionSession>();
-    private eventHooks: ((ev: KernelHooks) => Promise<void>)[] = [];
+    private eventHooks: ((ev: KernelHooks, sessionPromise?: Promise<IKernelConnectionSession>) => Promise<void>)[] = [];
     private startCancellation = new CancellationTokenSource();
     private startupUI = new DisplayOptions(true);
-    protected kernelExecution: TKernelExecution;
+    protected kernelExecution: KernelExecution;
     private disposingPromise?: Promise<void>;
     constructor(
         public readonly uri: Uri,
@@ -204,6 +204,7 @@ abstract class BaseKernel<TKernelExecution extends BaseKernelExecution> implemen
         const disposeImpl = async () => {
             const promises: Promise<void>[] = [];
             promises.push(this.kernelExecution.cancel());
+            promises.push(Promise.all(this.eventHooks.map((h) => h('willCancel'))).then(noop));
             this._session = this._session
                 ? this._session
                 : this._jupyterSessionPromise
@@ -230,7 +231,7 @@ abstract class BaseKernel<TKernelExecution extends BaseKernelExecution> implemen
     public async restart(): Promise<void> {
         try {
             const resourceType = getResourceType(this.resourceUri);
-            await Promise.all(this.eventHooks.map((h) => h('willRestart')));
+            await Promise.all(this.eventHooks.map((h) => h('willRestart', this._jupyterSessionPromise)));
             traceInfo(`Restart requested ${this.uri}`);
             this.startCancellation.cancel();
             const stopWatch = new StopWatch();
@@ -664,7 +665,7 @@ abstract class BaseKernel<TKernelExecution extends BaseKernelExecution> implemen
     }
 }
 
-export class ThirdPartyKernel extends BaseKernel<ThirdPartyKernelExecution> implements IThirdPartyKernel {
+export class ThirdPartyKernel extends BaseKernel implements IThirdPartyKernel {
     public override get creator(): '3rdPartyExtension' {
         return '3rdPartyExtension';
     }
@@ -676,7 +677,7 @@ export class ThirdPartyKernel extends BaseKernel<ThirdPartyKernelExecution> impl
         appShell: IApplicationShell,
         kernelSettings: IKernelSettings,
         startupCodeProviders: IStartupCodeProvider[],
-        kernelExecution: ThirdPartyKernelExecution
+        kernelExecution: KernelExecution
     ) {
         super(
             uri,
@@ -696,7 +697,7 @@ export class ThirdPartyKernel extends BaseKernel<ThirdPartyKernelExecution> impl
 /**
  * Represents an active kernel process running on the jupyter (or local) machine.
  */
-export class Kernel extends BaseKernel<KernelExecution> implements IKernel {
+export class Kernel extends BaseKernel implements IKernel {
     public override get creator(): 'jupyterExtension' {
         return 'jupyterExtension';
     }

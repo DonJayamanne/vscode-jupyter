@@ -124,7 +124,13 @@ export function isRemoteConnection(
     return !isLocalConnection(kernelConnection);
 }
 
-export type KernelHooks = 'willRestart' | 'willInterrupt' | 'restartCompleted' | 'interruptCompleted' | 'didStart';
+export type KernelHooks =
+    | 'willRestart'
+    | 'willInterrupt'
+    | 'restartCompleted'
+    | 'interruptCompleted'
+    | 'didStart'
+    | 'willCancel';
 export interface IBaseKernel extends IAsyncDisposable {
     readonly uri: Uri;
     /**
@@ -171,7 +177,7 @@ export interface IBaseKernel extends IAsyncDisposable {
     start(options?: IDisplayOptions): Promise<IKernelConnectionSession>;
     interrupt(): Promise<void>;
     restart(): Promise<void>;
-    addEventHook(hook: (event: KernelHooks) => Promise<void>): void;
+    addEventHook(hook: (event: KernelHooks, sessionPromise?: Promise<IKernelConnectionSession>) => Promise<void>): void;
     removeEventHook(hook: (event: KernelHooks) => Promise<void>): void;
 }
 
