@@ -25,7 +25,6 @@ import {
 } from './types';
 import { IJupyterServerUriStorage } from './jupyter/types';
 import { createKernelSettings } from './kernelSettings';
-import { KernelExecution } from './execution/kernelExecution';
 import { NotebookKernelExecution } from './kernelExecution';
 
 /**
@@ -59,7 +58,6 @@ export class KernelProvider extends BaseCoreKernelProvider {
 
         const resourceUri = notebook.notebookType === InteractiveWindowView ? options.resourceUri : notebook.uri;
         const settings = createKernelSettings(this.configService, resourceUri);
-        const kernelExecution = new KernelExecution(resourceUri, options.metadata, settings.interruptTimeout);
 
         const kernel: IKernel = new Kernel(
             resourceUri,
@@ -69,14 +67,12 @@ export class KernelProvider extends BaseCoreKernelProvider {
             settings,
             this.appShell,
             options.controller,
-            this.startupCodeProviders,
-            kernelExecution
+            this.startupCodeProviders
         );
         kernel.onRestarted(() => this._onDidRestartKernel.fire(kernel), this, this.disposables);
         kernel.onDisposed(
             () => {
                 this._onDidDisposeKernel.fire(kernel);
-                kernelExecution.dispose();
             },
             this,
             this.disposables
@@ -90,7 +86,7 @@ export class KernelProvider extends BaseCoreKernelProvider {
 
         this.executions.set(
             kernel,
-            new NotebookKernelExecution(kernel, kernelExecution, this.appShell, this.context, this.formatters, notebook)
+            new NotebookKernelExecution(kernel, this.appShell, this.context, this.formatters, notebook)
         );
         this.asyncDisposables.push(kernel);
         this.storeKernel(notebook, options, kernel);
@@ -123,7 +119,6 @@ export class ThirdPartyKernelProvider extends BaseThirdPartyKernelProvider {
 
         const resourceUri = uri;
         const settings = createKernelSettings(this.configService, resourceUri);
-        const kernelExecution = new KernelExecution(resourceUri, options.metadata, settings.interruptTimeout);
         const kernel: IThirdPartyKernel = new ThirdPartyKernel(
             uri,
             resourceUri,
@@ -131,14 +126,12 @@ export class ThirdPartyKernelProvider extends BaseThirdPartyKernelProvider {
             this.notebookProvider,
             this.appShell,
             settings,
-            this.startupCodeProviders,
-            kernelExecution
+            this.startupCodeProviders
         );
         kernel.onRestarted(() => this._onDidRestartKernel.fire(kernel), this, this.disposables);
         kernel.onDisposed(
             () => {
                 this._onDidDisposeKernel.fire(kernel);
-                kernelExecution.dispose();
             },
             this,
             this.disposables

@@ -14,7 +14,6 @@ import { CellExecutionFactory } from './execution/cellExecution';
 import { CellExecutionMessageHandlerService } from './execution/cellExecutionMessageHandlerService';
 import { CellExecutionQueue } from './execution/cellExecutionQueue';
 import { traceCellMessage } from './execution/helpers';
-import { KernelExecution } from './execution/kernelExecution';
 import { executeSilently } from './helpers';
 import { initializeInteractiveOrNotebookTelemetryBasedOnUserAction } from './telemetry/helper';
 import { sendKernelTelemetryEvent } from './telemetry/sendKernelTelemetryEvent';
@@ -40,7 +39,6 @@ export class NotebookKernelExecution implements INotebookKernelExecution {
 
     constructor(
         private readonly kernel: IKernel,
-        private readonly kernelExecution: KernelExecution,
         appShell: IApplicationShell,
         context: IExtensionContext,
         formatters: ITracebackFormatter[],
@@ -89,7 +87,7 @@ export class NotebookKernelExecution implements INotebookKernelExecution {
         const sessionPromise = this.kernel.start(new DisplayOptions(false));
 
         // If we're restarting, wait for it to finish
-        await this.kernelExecution.restarting;
+        await this.kernel.restarting;
 
         traceCellMessage(cell, `KernelExecution.executeCell (2), ${getDisplayPath(cell.notebook.uri)}`);
         const executionQueue = this.getOrCreateCellExecutionQueue(cell.notebook, sessionPromise);
