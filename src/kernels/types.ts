@@ -124,7 +124,7 @@ export function isRemoteConnection(
     return !isLocalConnection(kernelConnection);
 }
 
-export type KernelHooks = 'willRestart' | 'willInterrupt' | 'restartCompleted' | 'interruptCompleted';
+export type KernelHooks = 'willRestart' | 'willInterrupt' | 'restartCompleted' | 'interruptCompleted' | 'didStart';
 export interface IBaseKernel extends IAsyncDisposable {
     readonly uri: Uri;
     /**

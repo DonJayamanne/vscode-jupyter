@@ -40,7 +40,6 @@ import {
     IKernelConnectionSession,
     INotebookProvider,
     InterruptResult,
-    isLocalConnection,
     IStartupCodeProvider,
     KernelConnectionMetadata,
     KernelSocketInformation,
@@ -465,6 +464,7 @@ abstract class BaseKernel<TKernelExecution extends BaseKernelExecution> implemen
     }
 
     protected async initializeAfterStart(session: IKernelConnectionSession | undefined) {
+        await Promise.all(this.eventHooks.map((h) => h('didStart')));
         traceVerbose(`Started running kernel initialization for ${getDisplayPath(this.uri)}`);
         if (!session) {
             traceVerbose('Not running kernel initialization');
@@ -710,7 +710,6 @@ export class Kernel extends BaseKernel<KernelExecution> implements IKernel {
         appShell: IApplicationShell,
         public readonly controller: IKernelController,
         startupCodeProviders: IStartupCodeProvider[],
-        private readonly sendTelemetryForPythonKernelExecutable: () => Promise<void>,
         kernelExecution: KernelExecution
     ) {
         super(
@@ -725,32 +724,6 @@ export class Kernel extends BaseKernel<KernelExecution> implements IKernel {
         );
 
         this.kernelExecution = kernelExecution;
-    }
-    protected override async initializeAfterStart(session: IKernelConnectionSession | undefined) {
-        if (session && isPythonKernelConnection(this.kernelConnectionMetadata)) {
-            // Request completions to warm up the completion engine.
-            this.requestEmptyCompletions(session);
-
-            if (isLocalConnection(this.kernelConnectionMetadata)) {
-                await this.sendTelemetryForPythonKernelExecutable();
-            }
-        }
-        return super.initializeAfterStart(session);
-    }
-
-    /**
-     * Do not wait for completions,
-     * If the completions request crashes then we don't get a response for this request,
-     * Hence we end up waiting indefinitely.
-     * https://github.com/microsoft/vscode-jupyter/issues/9014
-     */
-    private requestEmptyCompletions(session: IKernelConnectionSession) {
-        session
-            ?.requestComplete({
-                code: '__file__.',
-                cursor_pos: 9
-            })
-            .ignoreErrors();
     }
 }
 

@@ -77,7 +77,6 @@ export class KernelProvider extends BaseCoreKernelProvider {
             this.appShell,
             options.controller,
             this.startupCodeProviders,
-            () => Promise.resolve(),
             kernelExecution
         ) as IKernel;
         kernel.onRestarted(() => this._onDidRestartKernel.fire(kernel), this, this.disposables);
