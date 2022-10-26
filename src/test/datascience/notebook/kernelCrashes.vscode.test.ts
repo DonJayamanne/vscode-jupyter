@@ -67,6 +67,7 @@ import { NotebookCellLanguageService } from '../../../notebooks/languages/cellLa
 import { IPythonExtensionChecker } from '../../../platform/api/types';
 import { IJupyterServerUriStorage } from '../../../kernels/jupyter/types';
 import { instance, mock, when } from 'ts-mockito';
+import { IPlatformService } from '../../../platform/common/platform/types';
 
 const codeToKillKernel = dedent`
 import IPython
@@ -115,6 +116,7 @@ suite('DataScience - VSCode Notebook Kernel Error Handling - (Execution) (slow)'
             const extensionChecker = api.serviceContainer.get<IPythonExtensionChecker>(IPythonExtensionChecker);
             const uriStorage = api.serviceContainer.get<IJupyterServerUriStorage>(IJupyterServerUriStorage);
             const browser = api.serviceContainer.get<IBrowserService>(IBrowserService);
+            const platform = api.serviceContainer.get<IPlatformService>(IPlatformService);
             kernelConnectionMetadata = await getDefaultKernelConnection();
             const createNbController = sinon.stub(vscodeNotebook, 'createNotebookController');
             disposables.push(new Disposable(() => createNbController.restore()));
@@ -163,7 +165,8 @@ suite('DataScience - VSCode Notebook Kernel Error Handling - (Execution) (slow)'
                 browser,
                 extensionChecker,
                 api.serviceContainer,
-                uriStorage
+                uriStorage,
+                platform
             );
             disposables.push(interpreterController);
 

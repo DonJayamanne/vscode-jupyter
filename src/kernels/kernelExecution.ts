@@ -22,7 +22,6 @@ import {
     IKernelConnectionSession,
     INotebookKernelExecution,
     ITracebackFormatter,
-    KernelHooks,
     NotebookCellRunState
 } from './types';
 
@@ -65,7 +64,9 @@ export class NotebookKernelExecution implements INotebookKernelExecution {
         });
         kernel.onRestarted(() => (this._visibleExecutionCount = 0), this, this.disposables);
         kernel.onStarted(() => (this._visibleExecutionCount = 0), this, this.disposables);
-        kernel.addEventHook(async (e, args) => this.onKernelHook(e, args));
+        kernel.addHook('willInterrupt', this.onWillInterrupt, this, this.disposables);
+        kernel.addHook('willCancel', this.onWillCancel, this, this.disposables);
+        kernel.addHook('willRestart', (sessionPromise) => this.onWillRestart(sessionPromise), this, this.disposables);
         this.disposables.push(this._onPreExecute);
     }
     public get pendingCells(): readonly NotebookCell[] {
@@ -103,39 +104,25 @@ export class NotebookKernelExecution implements INotebookKernelExecution {
         const sessionPromise = this.kernel.start();
         return sessionPromise.then((session) => executeSilently(session, code));
     }
-    private async onKernelHook(event: KernelHooks, sessionPromise?: Promise<IKernelConnectionSession>) {
-        switch (event) {
-            case 'willInterrupt': {
-                const executionQueue = this.documentExecutions.get(this.notebook);
-                if (!executionQueue && this.kernel.kernelConnectionMetadata.kind !== 'connectToLiveRemoteKernel') {
-                    return;
-                }
-                traceInfo('Interrupt kernel execution');
-                // First cancel all the cells & then wait for them to complete.
-                // Both must happen together, we cannot just wait for cells to complete, as its possible
-                // that cell1 has started & cell2 has been queued. If Cell1 completes, then Cell2 will start.
-                // What we want is, if Cell1 completes then Cell2 should not start (it must be cancelled before hand).
-                if (executionQueue) {
-                    await executionQueue.cancel();
-                    await executionQueue.waitForCompletion();
-                }
-
-                break;
-            }
-            case 'willRestart': {
-                await this.onWillRestart(sessionPromise);
-                break;
-            }
-            case 'willCancel': {
-                const executionQueue = this.documentExecutions.get(this.notebook);
-                if (executionQueue) {
-                    await executionQueue.cancel(true);
-                }
-                break;
-            }
-
-            default:
-                break;
+    private async onWillInterrupt() {
+        const executionQueue = this.documentExecutions.get(this.notebook);
+        if (!executionQueue && this.kernel.kernelConnectionMetadata.kind !== 'connectToLiveRemoteKernel') {
+            return;
+        }
+        traceInfo('Interrupt kernel execution');
+        // First cancel all the cells & then wait for them to complete.
+        // Both must happen together, we cannot just wait for cells to complete, as its possible
+        // that cell1 has started & cell2 has been queued. If Cell1 completes, then Cell2 will start.
+        // What we want is, if Cell1 completes then Cell2 should not start (it must be cancelled before hand).
+        if (executionQueue) {
+            await executionQueue.cancel();
+            await executionQueue.waitForCompletion();
+        }
+    }
+    private async onWillCancel() {
+        const executionQueue = this.documentExecutions.get(this.notebook);
+        if (executionQueue) {
+            await executionQueue.cancel(true);
         }
     }
     /**

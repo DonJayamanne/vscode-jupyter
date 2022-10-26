@@ -32,38 +32,48 @@ export class KernelStatusProvider implements IExtensionSyncActivationService {
     }
     private onDidCreateKernel(kernel: IKernel) {
         // Restart status.
-        kernel.addEventHook(async (e) => {
-            switch (e) {
-                case 'willRestart': {
-                    this.restartStatus.get(kernel)?.dispose();
-                    this.restartProgress.get(kernel)?.dispose();
-                    const status = this.statusProvider.set(DataScience.restartingKernelStatus().format(''));
-                    this.restartStatus.set(kernel, status);
-                    const progress = KernelProgressReporter.createProgressReporter(
-                        kernel.resourceUri,
-                        DataScience.restartingKernelStatus().format(
-                            `: ${getDisplayNameOrNameOfKernelConnection(kernel.kernelConnectionMetadata)}`
-                        )
-                    );
-                    this.restartProgress.set(kernel, progress);
-                    break;
-                }
-                case 'restartCompleted': {
-                    this.restartStatus.get(kernel)?.dispose();
-                    this.restartProgress.get(kernel)?.dispose();
-                    break;
-                }
-                case 'willInterrupt': {
-                    this.interruptStatus.get(kernel)?.dispose();
-                    const status = this.statusProvider.set(DataScience.interruptKernelStatus());
-                    this.interruptStatus.set(kernel, status);
-                    break;
-                }
-                case 'interruptCompleted': {
-                    this.interruptStatus.get(kernel)?.dispose();
-                    break;
-                }
-            }
-        });
+        kernel.addHook(
+            'willRestart',
+            async () => {
+                this.restartStatus.get(kernel)?.dispose();
+                this.restartProgress.get(kernel)?.dispose();
+                const status = this.statusProvider.set(DataScience.restartingKernelStatus().format(''));
+                this.restartStatus.set(kernel, status);
+                const progress = KernelProgressReporter.createProgressReporter(
+                    kernel.resourceUri,
+                    DataScience.restartingKernelStatus().format(
+                        `: ${getDisplayNameOrNameOfKernelConnection(kernel.kernelConnectionMetadata)}`
+                    )
+                );
+                this.restartProgress.set(kernel, progress);
+            },
+            this,
+            this.disposables
+        );
+        kernel.addHook(
+            'restartCompleted',
+            async () => {
+                this.restartStatus.get(kernel)?.dispose();
+                this.restartProgress.get(kernel)?.dispose();
+            },
+            this,
+            this.disposables
+        );
+        kernel.addHook(
+            'willInterrupt',
+            async () => {
+                this.interruptStatus.get(kernel)?.dispose();
+                const status = this.statusProvider.set(DataScience.interruptKernelStatus());
+                this.interruptStatus.set(kernel, status);
+            },
+            this,
+            this.disposables
+        );
+        kernel.addHook(
+            'interruptCompleted',
+            async () => this.interruptStatus.get(kernel)?.dispose(),
+            this,
+            this.disposables
+        );
     }
 }

@@ -17,7 +17,7 @@ import type {
 } from 'vscode';
 import type * as nbformat from '@jupyterlab/nbformat';
 import { PythonEnvironment } from '../platform/pythonEnvironments/info';
-import { IAsyncDisposable, IDisplayOptions, Resource } from '../platform/common/types';
+import { IAsyncDisposable, IDisplayOptions, IDisposable, Resource } from '../platform/common/types';
 import { IBackupFile, IJupyterKernel } from './jupyter/types';
 import { PythonEnvironment_PythonApi } from '../platform/api/types';
 import { IContributedKernelFinderInfo } from './internalTypes';
@@ -178,8 +178,18 @@ export interface IBaseKernel extends IAsyncDisposable {
     start(options?: IDisplayOptions): Promise<IKernelConnectionSession>;
     interrupt(): Promise<void>;
     restart(): Promise<void>;
-    addEventHook(hook: (event: KernelHooks, sessionPromise?: Promise<IKernelConnectionSession>) => Promise<void>): void;
-    removeEventHook(hook: (event: KernelHooks) => Promise<void>): void;
+    addHook(
+        event: 'willRestart',
+        hook: (sessionPromise?: Promise<IKernelConnectionSession>) => Promise<void>,
+        thisArgs?: unknown,
+        disposables?: IDisposable[]
+    ): IDisposable;
+    addHook(
+        event: 'willInterrupt' | 'restartCompleted' | 'interruptCompleted' | 'didStart' | 'willCancel',
+        hook: () => Promise<void>,
+        thisArgs?: unknown,
+        disposables?: IDisposable[]
+    ): IDisposable;
 }
 
 /**

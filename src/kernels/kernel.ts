@@ -55,6 +55,7 @@ import { KernelProgressReporter } from '../platform/progress/kernelProgressRepor
 import { DisplayOptions } from './displayOptions';
 import { SilentExecutionErrorOptions } from './helpers';
 
+type Hook = (...args: unknown[]) => Promise<void>;
 /**
  * Represents an active kernel process running on the jupyter (or local) machine.
  */
@@ -119,7 +120,7 @@ abstract class BaseKernel implements IBaseKernel {
     private readonly _onDisposed = new EventEmitter<void>();
     private _jupyterSessionPromise?: Promise<IKernelConnectionSession>;
     private readonly hookedSessionForEvents = new WeakSet<IKernelConnectionSession>();
-    private eventHooks: ((ev: KernelHooks, sessionPromise?: Promise<IKernelConnectionSession>) => Promise<void>)[] = [];
+    private hooks = new Map<KernelHooks, Set<Hook>>();
     private startCancellation = new CancellationTokenSource();
     private startupUI = new DisplayOptions(true);
     private disposingPromise?: Promise<void>;
@@ -157,14 +158,27 @@ abstract class BaseKernel implements IBaseKernel {
         }, this.disposables);
     }
 
-    public addEventHook(hook: (event: KernelHooks) => Promise<void>): void {
-        this.eventHooks.push(hook);
+    public addHook(
+        event: KernelHooks,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        cb: (...args: any[]) => Promise<void>,
+        thisArgs?: unknown,
+        disposables?: IDisposable[]
+    ): IDisposable {
+        const eventHook = this.hooks.get(event) || new Set<(...args: unknown[]) => Promise<void>>();
+        this.hooks.set(event, eventHook);
+        cb = thisArgs ? cb.bind(thisArgs) : cb;
+        eventHook.add(cb);
+        const disposable = {
+            dispose: () => {
+                eventHook.delete(cb);
+            }
+        };
+        if (disposables) {
+            disposables.push(disposable);
+        }
+        return disposable;
     }
-
-    public removeEventHook(hook: (event: KernelHooks) => Promise<void>): void {
-        this.eventHooks = this.eventHooks.filter((h) => h !== hook);
-    }
-
     public async start(options?: IDisplayOptions): Promise<IKernelConnectionSession> {
         return this.startJupyterSession(options);
     }
@@ -173,7 +187,9 @@ abstract class BaseKernel implements IBaseKernel {
      * If we don't have a kernel (Jupyter Session) available, then just abort all of the cell executions.
      */
     public async interrupt(): Promise<void> {
-        const pendingExecutions = Promise.all(this.eventHooks.map((h) => h('willInterrupt')));
+        const pendingExecutions = Promise.all(
+            Array.from(this.hooks.get('willInterrupt') || new Set<Hook>()).map((h) => h())
+        );
         traceInfo(`Interrupt requested ${getDisplayPath(this.resourceUri || this.uri)}`);
         this.startCancellation.cancel();
         let result: InterruptResult;
@@ -197,7 +213,9 @@ abstract class BaseKernel implements IBaseKernel {
                 this._interruptPromise = undefined;
             }
         } finally {
-            this.eventHooks.map((h) => h('interruptCompleted').ignoreErrors());
+            Promise.all(
+                Array.from(this.hooks.get('interruptCompleted') || new Set<Hook>()).map((h) => h())
+            ).ignoreErrors();
         }
 
         traceInfo(`Interrupt requested & sent for ${getDisplayPath(this.uri)} in notebookEditor.`);
@@ -225,7 +243,11 @@ abstract class BaseKernel implements IBaseKernel {
         this.startCancellation.cancel();
         const disposeImpl = async () => {
             const promises: Promise<void>[] = [];
-            promises.push(Promise.all(this.eventHooks.map((h) => h('willCancel'))).then(noop));
+            promises.push(
+                Promise.all(Array.from(this.hooks.get('willCancel') || new Set<Hook>()).map((h) => h()))
+                    .then(noop)
+                    .catch(noop)
+            );
             this._session = this._session
                 ? this._session
                 : this._jupyterSessionPromise
@@ -251,7 +273,9 @@ abstract class BaseKernel implements IBaseKernel {
     public async restart(): Promise<void> {
         try {
             const resourceType = getResourceType(this.resourceUri);
-            await Promise.all(this.eventHooks.map((h) => h('willRestart', this._jupyterSessionPromise)));
+            await Promise.all(
+                Array.from(this.hooks.get('willRestart') || new Set<Hook>()).map((h) => h(this._jupyterSessionPromise))
+            );
             traceInfo(`Restart requested ${this.uri}`);
             this.startCancellation.cancel();
             const stopWatch = new StopWatch();
@@ -294,7 +318,9 @@ abstract class BaseKernel implements IBaseKernel {
             traceError(`Failed to restart kernel ${getDisplayPath(this.uri)}`, ex);
             throw ex;
         } finally {
-            this.eventHooks.map((h) => h('restartCompleted').ignoreErrors());
+            Promise.all(
+                Array.from(this.hooks.get('restartCompleted') || new Set<Hook>()).map((h) => h())
+            ).ignoreErrors();
         }
     }
     /**
@@ -587,7 +613,7 @@ abstract class BaseKernel implements IBaseKernel {
     }
 
     protected async initializeAfterStart(session: IKernelConnectionSession | undefined) {
-        await Promise.all(this.eventHooks.map((h) => h('didStart')));
+        await Promise.all(Array.from(this.hooks.get('didStart') || new Set<Hook>()).map((h) => h()));
         traceVerbose(`Started running kernel initialization for ${getDisplayPath(this.uri)}`);
         if (!session) {
             traceVerbose('Not running kernel initialization');

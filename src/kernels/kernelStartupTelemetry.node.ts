@@ -18,14 +18,19 @@ export class KernelStartupTelemetry implements IExtensionSyncActivationService {
     }
 
     private addOnStartHooks(kernel: IKernel) {
-        kernel.addEventHook(async (e) => {
-            if (e === 'didStart' && kernel.session) {
-                await sendTelemetryForPythonKernelExecutable(
-                    kernel.session,
-                    kernel.resourceUri,
-                    kernel.kernelConnectionMetadata
-                );
-            }
-        });
+        kernel.addHook(
+            'didStart',
+            async () => {
+                if (kernel.session) {
+                    await sendTelemetryForPythonKernelExecutable(
+                        kernel.session,
+                        kernel.resourceUri,
+                        kernel.kernelConnectionMetadata
+                    );
+                }
+            },
+            this,
+            this.disposables
+        );
     }
 }
