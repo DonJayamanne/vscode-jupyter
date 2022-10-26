@@ -55,7 +55,7 @@ import { IControllerSelection } from '../../notebooks/controllers/types';
 import { format } from 'util';
 import { InteractiveWindow } from '../../interactive-window/interactiveWindow';
 
-suite(`Interactive window execution`, async function () {
+suite(`Interactive window execution @iw`, async function () {
     this.timeout(120_000);
     let api: IExtensionTestApi;
     const disposables: IDisposable[] = [];

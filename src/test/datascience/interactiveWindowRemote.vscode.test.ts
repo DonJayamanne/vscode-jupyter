@@ -16,7 +16,7 @@ import {
     waitForTextOutput
 } from './notebook/helper.node';
 
-suite('Interactive window (remote)', async () => {
+suite('Interactive window (remote) @iw', async () => {
     let interactiveWindowProvider: IInteractiveWindowProvider;
     let disposables: Disposable[] = [];
     setup(async function () {
