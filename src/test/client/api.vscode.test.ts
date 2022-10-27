@@ -14,7 +14,7 @@ import { initialize } from '../initialize.node';
 import * as sinon from 'sinon';
 import { captureScreenShot, createEventHandler, IExtensionTestApi, waitForCondition } from '../common.node';
 import { IS_REMOTE_NATIVE_TEST } from '../constants.node';
-import { Disposable, Uri, workspace } from 'vscode';
+import { Disposable, workspace } from 'vscode';
 import { executeSilently } from '../../kernels/helpers';
 import { getPlainTextOrStreamOutput } from '../../kernels/kernel';
 import { IInterpreterService } from '../../platform/interpreter/contracts';
