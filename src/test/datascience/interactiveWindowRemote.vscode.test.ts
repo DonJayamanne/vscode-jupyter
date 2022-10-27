@@ -50,7 +50,7 @@ suite('Interactive window (remote) @iw', async () => {
         return { notebookDocument };
     }
 
-    test('Execute cell from Python file', async () => {
+    test('Execute cell from Python file @mandatory', async () => {
         const source = 'print("Hello World")';
         const { notebookDocument } = await runCellInRemoveInteractiveWindow(source);
 

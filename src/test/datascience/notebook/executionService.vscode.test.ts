@@ -118,7 +118,7 @@ suite('DataScience - VSCode Notebook - (Execution) (slow) @kernel', function () 
         traceInfo(`Ended Test (completed) ${this.currentTest?.title}`);
     });
     suiteTeardown(() => closeNotebooksAndCleanUpAfterTests(disposables));
-    test('Execute cell using VSCode Kernel', async () => {
+    test('Execute cell using VSCode Kernel @mandatory', async () => {
         const cell = await notebook.appendCodeCell('print("123412341234")');
         await kernelExecution.executeCell(cell);
 
@@ -417,7 +417,7 @@ suite('DataScience - VSCode Notebook - (Execution) (slow) @kernel', function () 
             `First entry in PATH (${pathValue[0]}) does not point to executable (${sysExecutable})`
         );
     });
-    test('!python should point to the Environment', async function () {
+    test('!python should point to the Environment @mandatory', async function () {
         if (IS_REMOTE_NATIVE_TEST()) {
             return this.skip();
         }

@@ -20,7 +20,7 @@ import {
 } from '../notebook/helper.node';
 import { createJupyterCellFromVSCNotebookCell } from '../../../kernels/execution/helpers';
 
-suite('VSCode Notebook PlotViewer integration - VSCode Notebook @plotViewer', function () {
+suite('VSCode Notebook PlotViewer integration - VSCode Notebook @webview', function () {
     let api: IExtensionTestApi;
     let vscodeNotebook: IVSCodeNotebook;
     const disposables: IDisposable[] = [];

@@ -55,14 +55,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.10.0
+        uses: styfle/cancel-workflow-action@0.11.0
         with:
           access_token: ${{ github.token }}
 
   build-vsix:
     name: Build VSIX
     runs-on: ubuntu-latest
-    if: github.repository == 'microsoft/vscode-jupyter'
+    if: false
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -105,9 +105,10 @@ jobs:
           path: 'ms-toolsai-jupyter-insiders.vsix'
 
   lint:
+    if: false
     name: Lint
     runs-on: ubuntu-latest
-    if: github.repository == 'microsoft/vscode-jupyter'
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -184,7 +185,7 @@ jobs:
   ts_tests:
     name: Type Script Tests
     runs-on: ${{ matrix.os }}
-    if: github.repository == 'microsoft/vscode-jupyter'
+
     strategy:
       fail-fast: false
       matrix:
@@ -273,21 +274,25 @@ jobs:
   vscodeTests:
     name: Tests # These tests run with Python extension & real Jupyter
     runs-on: ${{ matrix.os }}
-    if: github.repository == 'microsoft/vscode-jupyter'
+
     env:
       VSC_PYTHON_FORCE_LOGGING: 1
       VSC_JUPYTER_CI_RUN_NON_PYTHON_NB_TEST: 1
     strategy:
       fail-fast: false
       matrix:
-        jupyter: [raw, local]
-        python: [nonConda, conda]
-        pythonVersion: ['3.9', '3.10']
+        jupyter: [raw]
+        # jupyter: [raw, local]
+        # python: [nonConda, conda]
+        python: [python]
+        pythonVersion: ['3.10']
+        # pythonVersion: ['3.9', '3.10']
         webOrDesktop: ['']
         # Whether we're using stable (<empty>) or pre-release versions of Python packages.
         # When installing pre-release versions, we're only focused on jupyter & related packages.
         # Not pre-release versions of pandas, numpy or other such packages that are not core to Jupyter.
         packageVersion: ['']
+        tags: ['^[^@]+$|@mandatory', '@kernel|@python', '@widgets', '@iw', '@webview', '@export', '@debugger']
         # We're not running CI on macOS for now because it's one less matrix entry to lower the number of runners used,
         # macOS runners are expensive, and we assume that Ubuntu is enough to cover the UNIX case.
         os: [ubuntu-latest]
@@ -296,37 +301,68 @@ jobs:
         # & with include, you can include additional items to the result matrix.
         include:
           - jupyter: remote # We don't care how remote is started (we only want to test connecting to it)
-            python: nonConda
-            pythonVersion: '3.9'
+            python: python
+            pythonVersion: '3.10'
             webOrDesktop: 'desktop'
             os: ubuntu-latest
-          - jupyter: remote
-            python: nonConda
-            pythonVersion: '3.9'
+            tags: '^[^@]+$|@mandatory'
+          - jupyter: remote # We don't care how remote is started (we only want to test connecting to it)
+            python: python
+            pythonVersion: '3.10'
             webOrDesktop: 'web'
             os: ubuntu-latest
+            tags: '^[^@]+$|@mandatory'
+          - jupyter: remote
+            python: python
+            pythonVersion: '3.10'
+            webOrDesktop: 'desktop'
+            os: ubuntu-latest
+            tags: '@kernel'
           - jupyter: raw
             python: noPython
             os: ubuntu-latest
           - jupyter: raw
-            python: nonConda
+            python: python
             pythonVersion: '3.10'
             os: windows-latest
-          - jupyter: local
-            python: nonConda
-            pythonVersion: '3.9'
-            packageVersion: 'prerelease'
-            os: ubuntu-latest
+            tags: '^[^@]+$|@mandatory'
           - jupyter: raw
-            python: nonConda
-            pythonVersion: '3.9'
+            python: python
+            pythonVersion: '3.10'
+            os: windows-latest
+            tags: '@kernel|@python'
+          - jupyter: raw
+            python: python
+            pythonVersion: '3.11'
+            os: windows-latest
+            tags: '^[^@]+$|@mandatory|@kernel|@python'
+          - jupyter: raw
+            python: conda
+            pythonVersion: '3.10'
+            os: windows-latest
+            tags: '^[^@]+$|@mandatory|@kernel|@python'
+          - jupyter: raw
+            python: conda
+            pythonVersion: '3.10'
+            os: ubuntu-latest
+            tags: '^[^@]+$|@mandatory|@kernel|@python'
+          - jupyter: local
+            python: python
+            pythonVersion: '3.10'
             packageVersion: 'prerelease'
             os: ubuntu-latest
-        exclude:
-          - python: conda # Conda does't seem to support 3.10 yet.
+            tags: '^[^@]+$|@mandatory|@kernel|@python'
+          - jupyter: raw
+            python: python
             pythonVersion: '3.10'
+            packageVersion: 'prerelease'
+            os: ubuntu-latest
+            tags: '^[^@]+$|@mandatory@kernel|@python'
+        # exclude:
+        #   - python: conda # Conda does't seem to support 3.10 yet.
+        #     pythonVersion: '3.10'
         #   - pythonVersion: '3.9'
-        #     python: nonConda
+        #     python: python
         #     jupyter: raw
         #     os: windows-latest
     steps:
@@ -576,6 +612,7 @@ jobs:
           VSC_JUPYTER_CI_RUN_JAVA_NB_TEST: ${{ matrix.python == 'conda' }}
           VSC_JUPYTER_CI_IS_CONDA: ${{ matrix.python == 'conda' }}
           VSC_JUPYTER_CI_TEST_VSC_CHANNEL: 'insiders'
+          VSC_JUPYTER_CI_TEST_GREP: ${{ matrix.tags }}
         id: test_notebook_vscode_ubuntu
         if: matrix.python != 'noPython' && matrix.os == 'ubuntu-latest' && matrix.webOrDesktop != 'web'
 
@@ -596,6 +633,7 @@ jobs:
           VSC_JUPYTER_CI_RUN_JAVA_NB_TEST: ${{ matrix.python == 'conda' }}
           VSC_JUPYTER_CI_IS_CONDA: ${{ matrix.python == 'conda' }}
           VSC_JUPYTER_CI_TEST_VSC_CHANNEL: 'insiders'
+          VSC_JUPYTER_CI_TEST_GREP: ${{ matrix.tags }}
         id: test_notebook_vscode_web
         if: matrix.python != 'noPython' && matrix.os == 'ubuntu-latest' && matrix.webOrDesktop == 'web'
 
@@ -612,7 +650,7 @@ jobs:
           VSC_JUPYTER_CI_IS_CONDA: ${{ matrix.python == 'conda' }}
           VSC_JUPYTER_CI_TEST_VSC_CHANNEL: 'insiders'
           VSC_PYTHON_LOG_FILE: ${{env.VSC_JUPYTER_USER_DATA_DIR}}/logs/python.log
-          TEST_FILES_SUFFIX: '+(interrupt|execut)*.vscode.test*'
+          VSC_JUPYTER_CI_TEST_GREP: ${{ matrix.tags }}
         id: test_notebook_vscode_windows
         if: matrix.python != 'noPython' && matrix.os == 'windows-latest' && matrix.webOrDesktop != 'web'
 
@@ -624,6 +662,7 @@ jobs:
           VSC_JUPYTER_FORCE_LOGGING: 1
           VSC_JUPYTER_CI_RUN_NON_PYTHON_NB_TEST: 1
           VSC_JUPYTER_CI_TEST_VSC_CHANNEL: 'insiders'
+          VSC_JUPYTER_CI_TEST_GREP: ${{ matrix.tags }}
         id: test_notebookWithoutPythonExt_vscode
         if: matrix.python == 'noPython' && matrix.os != 'windows-latest'
 
@@ -667,7 +706,7 @@ jobs:
     name: Smoke tests
     # The value of runs-on is the OS of the current job (specified in the strategy matrix below) instead of being hardcoded.
     runs-on: ${{ matrix.os }}
-    if: github.repository == 'microsoft/vscode-jupyter'
+    if: false
     needs: [build-vsix]
     env:
       VSIX_NAME: 'ms-toolsai-jupyter-insiders.vsix'
@@ -753,7 +792,7 @@ jobs:
     name: Performance tests
     # The value of runs-on is the OS of the current job (specified in the strategy matrix below) instead of being hardcoded.
     runs-on: ${{ matrix.os }}
-    if: github.repository == 'microsoft/vscode-jupyter'
+
     needs: [build-vsix]
     env:
       VSIX_NAME: 'ms-toolsai-jupyter-insiders.vsix'
