@@ -123,7 +123,10 @@ suite('3rd Party Kernel Service API @kernelCore', function () {
         const interpreterService = await api.serviceContainer.get<IInterpreterService>(IInterpreterService);
         const onDidChangeKernels = createEventHandler(kernelService!, 'onDidChangeKernels');
         const activeInterpreter = await interpreterService.getActiveInterpreter();
-
+        if (!activeInterpreter) {
+            throw new Error('Active Interpreter is undefined');
+        }
+        assert.isOk(activeInterpreter);
         let kernelSpecs: KernelConnectionMetadata[] = [];
         const pythonKernel = await waitForCondition(
             async () => {
@@ -135,15 +138,14 @@ suite('3rd Party Kernel Service API @kernelCore', function () {
                     : kernelSpecs.find(
                           (item) =>
                               item.kind === 'startUsingPythonInterpreter' &&
-                              activeInterpreter &&
-                              Uri.from(item.interpreter.uri).toString() === Uri.from(activeInterpreter.uri).toString()
+                              item.interpreter.uri.toString() === activeInterpreter.uri.toString()
                       );
             },
             defaultNotebookTestTimeout,
             () =>
-                `Python Kernel not found, Found kernel specs ${kernelSpecs.length}: ${kernelSpecs
-                    .map((i) => `${i.id}, ${i.kind}, ${i.interpreter?.uri.path}`)
-                    .join('\n')}`
+                `Python Kernel not found, active interpreter is ${activeInterpreter.uri.toString()}, found kernel specs ${
+                    kernelSpecs.length
+                }: ${kernelSpecs.map((i) => `${i.id}, ${i.kind}, ${i.interpreter?.uri.path}`).join('\n')}`
         );
         assert.isOk(pythonKernel, 'Python Kernel Spec not found');
 
