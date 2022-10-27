@@ -315,6 +315,12 @@ jobs:
           - jupyter: remote # We don't care how remote is started (we only want to test connecting to it)
             python: python
             pythonVersion: '3.10'
+            webOrDesktop: 'desktop'
+            os: ubuntu-latest
+            tags: '@widgets'
+          - jupyter: remote # We don't care how remote is started (we only want to test connecting to it)
+            python: python
+            pythonVersion: '3.10'
             webOrDesktop: 'web'
             os: ubuntu-latest
             tags: '^[^@]+$|@mandatory'
@@ -353,18 +359,12 @@ jobs:
             pythonVersion: '3.10'
             os: ubuntu-latest
             tags: '^[^@]+$|@mandatory|@kernelCore|@python'
-          - jupyter: local
-            python: python
-            pythonVersion: '3.10'
-            packageVersion: 'prerelease'
-            os: ubuntu-latest
-            tags: '^[^@]+$|@mandatory|@kernelCore|@python'
           - jupyter: raw
             python: python
             pythonVersion: '3.10'
             packageVersion: 'prerelease'
             os: ubuntu-latest
-            tags: '^[^@]+$|@mandatory@kernelCore|@python'
+            tags: '^[^@]+$|@mandatory|@kernelCore|@python'
         # exclude:
         #   - python: conda # Conda does't seem to support 3.10 yet.
         #     pythonVersion: '3.10'
