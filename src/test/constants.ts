@@ -8,7 +8,6 @@ export type TestSettingsType = {
     isRemoteNativeTest: boolean;
     isNonRawNativeTest: boolean;
     isCIServer: boolean;
-    isCIServerTestDebuggable: boolean;
     isCondaTest: boolean;
     isPerfTest: boolean;
 };
@@ -18,7 +17,6 @@ let testSettings: TestSettingsType = {
     isRemoteNativeTest: false,
     isNonRawNativeTest: false,
     isCIServer: false,
-    isCIServerTestDebuggable: false,
     isCondaTest: false,
     isPerfTest: false
 };
@@ -42,11 +40,6 @@ export function IS_NON_RAW_NATIVE_TEST() {
 export const IS_MULTI_ROOT_TEST = isMultirootTest;
 export function IS_CONDA_TEST() {
     return testSettings.isCondaTest;
-}
-
-// If running on CI server, then run debugger tests ONLY if the corresponding flag is enabled.
-export function TEST_DEBUGGER() {
-    return testSettings.isCIServer ? testSettings.isCIServerTestDebuggable : true;
 }
 
 function isMultirootTest() {

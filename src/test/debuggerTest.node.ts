@@ -8,7 +8,6 @@ import { runTests } from '@vscode/test-electron';
 import { EXTENSION_ROOT_DIR_FOR_TESTS } from './constants.node';
 
 const workspacePath = path.join(__dirname, '..', '..', 'src', 'test', 'testMultiRootWkspc', 'multi.code-workspace');
-process.env.IS_CI_SERVER_TEST_DEBUGGER = '1';
 process.env.VSC_JUPYTER_CI_TEST = '1';
 
 function start() {

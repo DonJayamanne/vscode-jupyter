@@ -20,7 +20,7 @@ import glob from 'glob';
 import Mocha from 'mocha';
 import * as path from '../platform/vscode-path/path';
 import * as v8 from 'v8';
-import { IS_CI_SERVER, IS_CI_SERVER_TEST_DEBUGGER } from './ciConstants.node';
+import { IS_CI_SERVER } from './ciConstants.node';
 import {
     IS_MULTI_ROOT_TEST,
     IS_SMOKE_TEST,
@@ -91,7 +91,7 @@ function configure(): SetupOptions {
     // If running on CI server and we're running the debugger tests, then ensure we only run debug tests.
     // We do this to ensure we only run debugger test, as debugger tests are very flaky on CI.
     // So the solution is to run them separately and first on CI.
-    const grep = IS_CI_SERVER_TEST_DEBUGGER ? 'Debug' : defaultGrep;
+    const grep = defaultGrep;
     const testFilesSuffix = process.env.TEST_FILES_SUFFIX || '.test*';
     const testTimeout = process.env.VSC_JUPYTER_TEST_TIMEOUT || TEST_TIMEOUT;
 
@@ -108,7 +108,7 @@ function configure(): SetupOptions {
         // It has been observed that this isn't sufficient, hence the reason for src/test/common/exitCIAfterTestReporter.ts
         exit: true
     };
-
+    console.log(`Test Options: ${JSON.stringify(options)}`);
     // Set up the CI reporter for
     // reporting to both the console (spec) and to a JUnit XML file. The xml file
     // written to is `test-report.xml` in the root folder by default, but can be
@@ -194,7 +194,7 @@ export async function run(): Promise<void> {
             break;
     }
     const testFiles = await new Promise<string[]>((resolve, reject) => {
-        // If we have mulitple patterns, then turn into regex from `a,b,c` to `(a|b|c)`
+        // If we have multiple patterns, then turn into regex from `a,b,c` to `(a|b|c)`
         const pattern = options.testFilesSuffix.includes(',')
             ? `(${options.testFilesSuffix.split(',').join('|')})`
             : options.testFilesSuffix;

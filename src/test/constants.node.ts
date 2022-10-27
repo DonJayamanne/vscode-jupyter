@@ -32,7 +32,6 @@ setUnitTestExecution(process.env.VSC_JUPYTER_UNIT_TEST === '1');
 setTestSettings({
     isSmokeTest: process.env.VSC_JUPYTER_SMOKE_TEST === '1',
     isCIServer: process.env.TF_BUILD !== undefined || process.env.GITHUB_ACTIONS === 'true',
-    isCIServerTestDebuggable: process.env.IS_CI_SERVER_TEST_DEBUGGER === '1',
     isCondaTest: (process.env.VSC_JUPYTER_CI_IS_CONDA || '').toLowerCase() === 'true',
     isNonRawNativeTest: (process.env.VSC_JUPYTER_NON_RAW_NATIVE_TEST || '').toLowerCase() === 'true',
     isRemoteNativeTest: (process.env.VSC_JUPYTER_REMOTE_NATIVE_TEST || '').toLowerCase() === 'true',
