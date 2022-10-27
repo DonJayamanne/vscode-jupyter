@@ -292,7 +292,7 @@ jobs:
         # When installing pre-release versions, we're only focused on jupyter & related packages.
         # Not pre-release versions of pandas, numpy or other such packages that are not core to Jupyter.
         packageVersion: ['']
-        tags: ['^[^@]+$|@mandatory', '@kernelCore|^kernelPicker', '@widgets', '@iw', '@webview|@export', '@debugger', '@kernelPicker|@python|@jupyter']
+        tags: ['^[^@]+$|@mandatory', '@kernelCore', '@widgets', '@iw', '@webview|@export|@lsp', '@debugger', '@kernelPicker|@python|@jupyter|@kernelInstall']
         # We're not running CI on macOS for now because it's one less matrix entry to lower the number of runners used,
         # macOS runners are expensive, and we assume that Ubuntu is enough to cover the UNIX case.
         os: [ubuntu-latest]
@@ -327,26 +327,27 @@ jobs:
           - jupyter: raw
             python: noPython
             os: ubuntu-latest
-          - jupyter: raw
-            python: python
-            pythonVersion: '3.10'
-            os: windows-latest
-            tags: '^[^@]+$|@mandatory'
-          - jupyter: raw
-            python: python
-            pythonVersion: '3.10'
-            os: windows-latest
-            tags: '@kernelCore|@python'
-          - jupyter: raw
-            python: python
-            pythonVersion: '3.11'
-            os: windows-latest
-            tags: '^[^@]+$|@mandatory|@kernelCore|@python'
-          - jupyter: raw
-            python: conda
-            pythonVersion: '3.10'
-            os: windows-latest
-            tags: '^[^@]+$|@mandatory|@kernelCore|@python'
+            tags: '@nonPython'
+        #   - jupyter: raw
+        #     python: python
+        #     pythonVersion: '3.10'
+        #     os: windows-latest
+        #     tags: '^[^@]+$|@mandatory'
+        #   - jupyter: raw
+        #     python: python
+        #     pythonVersion: '3.10'
+        #     os: windows-latest
+        #     tags: '@kernelCore|@python'
+        #   - jupyter: raw
+        #     python: python
+        #     pythonVersion: '3.11'
+        #     os: windows-latest
+        #     tags: '^[^@]+$|@mandatory|@kernelCore|@python'
+        #   - jupyter: raw
+        #     python: conda
+        #     pythonVersion: '3.10'
+        #     os: windows-latest
+        #     tags: '^[^@]+$|@mandatory|@kernelCore|@python'
           - jupyter: raw
             python: conda
             pythonVersion: '3.10'

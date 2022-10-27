@@ -34,7 +34,7 @@ import { noop } from '../../core';
 
 /* eslint-disable @typescript-eslint/no-explicit-any, no-invalid-this */
 suite(
-    'DataScience - VSCode Notebook - Kernels (non-python-kernel) (slow) @kernelCore @kernelPicker ',
+    'DataScience - VSCode Notebook - Kernels (non-python-kernel) (slow) @nonPythonKernel ',
     async function () {
         const juliaNb = Uri.file(
             path.join(EXTENSION_ROOT_DIR_FOR_TESTS, 'src', 'test', 'datascience', 'notebook', 'simpleJulia.ipynb')

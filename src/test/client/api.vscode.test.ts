@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { assert } from 'chai';
-import { traceInfo, traceInfoIfCI } from '../../platform/logging';
+import { traceInfo } from '../../platform/logging';
 import { IDisposable } from '../../platform/common/types';
 import {
     closeNotebooksAndCleanUpAfterTests,
@@ -21,6 +21,7 @@ import { IInterpreterService } from '../../platform/interpreter/contracts';
 import { createKernelController, TestNotebookDocument } from '../datascience/notebook/executionHelper';
 import { IKernel, INotebookKernelExecution, IKernelProvider, IKernelFinder } from '../../kernels/types';
 import { areInterpreterPathsSame } from '../../platform/pythonEnvironments/info/interpreter';
+import { KernelConnectionMetadata } from '../../standalone/api/extension';
 
 suite('3rd Party Kernel Service API @kernelCore', function () {
     let api: IExtensionTestApi;
@@ -123,15 +124,11 @@ suite('3rd Party Kernel Service API @kernelCore', function () {
         const onDidChangeKernels = createEventHandler(kernelService!, 'onDidChangeKernels');
         const activeInterpreter = await interpreterService.getActiveInterpreter();
 
-        const kernelSpecs = await kernelService!.getKernelSpecifications();
-        traceInfoIfCI(
-            `Found kernel specs ${kernelSpecs.length}: ${kernelSpecs
-                .map((i) => `${i.id}, ${i.kind}, ${i.interpreter?.uri.path}`)
-                .join('\n')}`
-        );
+        let kernelSpecs: KernelConnectionMetadata[] = [];
         const pythonKernel = await waitForCondition(
-            () =>
-                IS_REMOTE_NATIVE_TEST()
+            async () => {
+                kernelSpecs = await kernelService!.getKernelSpecifications();
+                return IS_REMOTE_NATIVE_TEST()
                     ? kernelSpecs.find(
                           (item) => item.kind === 'startUsingRemoteKernelSpec' && item.kernelSpec.language === 'python'
                       )
@@ -140,9 +137,13 @@ suite('3rd Party Kernel Service API @kernelCore', function () {
                               item.kind === 'startUsingPythonInterpreter' &&
                               activeInterpreter &&
                               Uri.from(item.interpreter.uri).toString() === Uri.from(activeInterpreter.uri).toString()
-                      ),
+                      );
+            },
             defaultNotebookTestTimeout,
-            'Python Kernel not found'
+            () =>
+                `Python Kernel not found, Found kernel specs ${kernelSpecs.length}: ${kernelSpecs
+                    .map((i) => `${i.id}, ${i.kind}, ${i.interpreter?.uri.path}`)
+                    .join('\n')}`
         );
         assert.isOk(pythonKernel, 'Python Kernel Spec not found');
 
