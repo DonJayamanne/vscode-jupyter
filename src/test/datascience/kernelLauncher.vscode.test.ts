@@ -27,7 +27,7 @@ use(chaiAsPromised);
 
 const test_Timeout = 30_000;
 
-suite('DataScience - Kernel Launcher @kernel', () => {
+suite('DataScience - Kernel Launcher @kernelCore', () => {
     let kernelLauncher: IKernelLauncher;
     let token: CancellationTokenSource;
     const kernelSpec = {

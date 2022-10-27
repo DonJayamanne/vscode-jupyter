@@ -292,7 +292,7 @@ jobs:
         # When installing pre-release versions, we're only focused on jupyter & related packages.
         # Not pre-release versions of pandas, numpy or other such packages that are not core to Jupyter.
         packageVersion: ['']
-        tags: ['^[^@]+$|@mandatory', '@kernel|^kernelPicker', '@widgets', '@iw', '@webview|@export', '@debugger', '@kernelPicker|@python|@jupyter']
+        tags: ['^[^@]+$|@mandatory', '@kernelCore|^kernelPicker', '@widgets', '@iw', '@webview|@export', '@debugger', '@kernelPicker|@python|@jupyter']
         # We're not running CI on macOS for now because it's one less matrix entry to lower the number of runners used,
         # macOS runners are expensive, and we assume that Ubuntu is enough to cover the UNIX case.
         os: [ubuntu-latest]
@@ -323,7 +323,7 @@ jobs:
             pythonVersion: '3.10'
             webOrDesktop: 'desktop'
             os: ubuntu-latest
-            tags: '@kernel'
+            tags: '@kernelCore'
           - jupyter: raw
             python: noPython
             os: ubuntu-latest
@@ -336,34 +336,34 @@ jobs:
             python: python
             pythonVersion: '3.10'
             os: windows-latest
-            tags: '@kernel|@python'
+            tags: '@kernelCore|@python'
           - jupyter: raw
             python: python
             pythonVersion: '3.11'
             os: windows-latest
-            tags: '^[^@]+$|@mandatory|@kernel|@python'
+            tags: '^[^@]+$|@mandatory|@kernelCore|@python'
           - jupyter: raw
             python: conda
             pythonVersion: '3.10'
             os: windows-latest
-            tags: '^[^@]+$|@mandatory|@kernel|@python'
+            tags: '^[^@]+$|@mandatory|@kernelCore|@python'
           - jupyter: raw
             python: conda
             pythonVersion: '3.10'
             os: ubuntu-latest
-            tags: '^[^@]+$|@mandatory|@kernel|@python'
+            tags: '^[^@]+$|@mandatory|@kernelCore|@python'
           - jupyter: local
             python: python
             pythonVersion: '3.10'
             packageVersion: 'prerelease'
             os: ubuntu-latest
-            tags: '^[^@]+$|@mandatory|@kernel|@python'
+            tags: '^[^@]+$|@mandatory|@kernelCore|@python'
           - jupyter: raw
             python: python
             pythonVersion: '3.10'
             packageVersion: 'prerelease'
             os: ubuntu-latest
-            tags: '^[^@]+$|@mandatory@kernel|@python'
+            tags: '^[^@]+$|@mandatory@kernelCore|@python'
         # exclude:
         #   - python: conda # Conda does't seem to support 3.10 yet.
         #     pythonVersion: '3.10'

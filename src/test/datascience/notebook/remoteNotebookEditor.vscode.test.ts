@@ -293,7 +293,7 @@ suite('DataScience - VSCode Notebook - (Remote Execution)', function () {
         );
     });
 
-    test('Remote kernels work with https @kernel', async function () {
+    test('Remote kernels work with https @kernelCore', async function () {
         // Note, this test won't work in web yet.
         const config = workspace.getConfiguration('jupyter');
         await config.update('allowUnauthorizedRemoteConnection', false);

@@ -32,7 +32,7 @@ import {
 import cloneDeep = require('lodash/cloneDeep');
 
 /* eslint-disable @typescript-eslint/no-explicit-any, no-invalid-this */
-suite('DataScience - VSCode Notebook - (Saving) (slow) @kernel', function () {
+suite('DataScience - VSCode Notebook - (Saving) (slow) @kernelCore', function () {
     this.timeout(60_000);
     const disposables: IDisposable[] = [];
     let testEmptyIPynb: Uri;

@@ -22,7 +22,7 @@ import { createKernelController, TestNotebookDocument } from '../datascience/not
 import { IKernel, INotebookKernelExecution, IKernelProvider, IKernelFinder } from '../../kernels/types';
 import { areInterpreterPathsSame } from '../../platform/pythonEnvironments/info/interpreter';
 
-suite('3rd Party Kernel Service API @kernel', function () {
+suite('3rd Party Kernel Service API @kernelCore', function () {
     let api: IExtensionTestApi;
     const disposables: IDisposable[] = [];
     this.timeout(120_000);

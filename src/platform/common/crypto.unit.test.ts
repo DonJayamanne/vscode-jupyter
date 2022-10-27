@@ -12,16 +12,16 @@ suite('Crypto Utils', async () => {
         crypto = new CryptoUtils();
     });
 
-    test('If hashFormat equals `string`, method createHash() returns a string @mandatory', async () => {
+    test('If hashFormat equals `string`, method createHash() returns a string', async () => {
         const hash = await crypto.createHash('blabla');
         assert.typeOf(hash, 'string', 'Type should be a string');
     });
-    test('Hashes must be same for same strings (sha256) @kernel', async () => {
+    test('Hashes must be same for same strings (sha256)', async () => {
         const hash1 = await crypto.createHash('blabla', 'SHA-256');
         const hash2 = await crypto.createHash('blabla', 'SHA-256');
         assert.equal(hash1, hash2);
     });
-    test('Hashes must be different for different strings (sha256) @debugger', async () => {
+    test('Hashes must be different for different strings (sha256)', async () => {
         const hash1 = await crypto.createHash('Hello', 'SHA-256');
         const hash2 = await crypto.createHash('World', 'SHA-256');
         assert.notEqual(hash1, hash2);
