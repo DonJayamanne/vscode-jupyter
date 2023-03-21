@@ -62,7 +62,6 @@ jobs:
   build-vsix:
     name: Build VSIX
     runs-on: ubuntu-latest
-    if: github.repository == 'microsoft/vscode-jupyter'
     steps:
       - name: Checkout
         uses: actions/checkout@v3
