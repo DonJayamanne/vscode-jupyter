@@ -1922,7 +1922,10 @@ export class IEventNamePropertyMapping {
          * Failed to support zmq.
          */
         failed: boolean;
-
+        /**
+         * Whether we tried a fallback to to the older versions of the binaries.
+         */
+        fallbackTried?: boolean;
         /**
          * Whether alpine or not.
          */
@@ -1936,14 +1939,6 @@ export class IEventNamePropertyMapping {
          * arm version
          */
         armv?: string;
-        /**
-         * Linux distro name.
-         */
-        distro_name?: string;
-        /**
-         * Linux distro version.
-         */
-        distro_version: string;
         /**
          * Linux distro id.
          */
@@ -1961,6 +1956,10 @@ export class IEventNamePropertyMapping {
                 classification: 'SystemMetaData',
                 purpose: 'FeatureInsight'
             },
+            fallbackTried: {
+                classification: 'SystemMetaData',
+                purpose: 'FeatureInsight'
+            },
             alpine: {
                 classification: 'SystemMetaData',
                 purpose: 'FeatureInsight'
@@ -1970,14 +1969,6 @@ export class IEventNamePropertyMapping {
                 purpose: 'FeatureInsight'
             },
             armv: {
-                classification: 'SystemMetaData',
-                purpose: 'FeatureInsight'
-            },
-            distro_name: {
-                classification: 'SystemMetaData',
-                purpose: 'FeatureInsight'
-            },
-            distro_version: {
                 classification: 'SystemMetaData',
                 purpose: 'FeatureInsight'
             },
