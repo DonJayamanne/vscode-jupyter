@@ -229,7 +229,16 @@ module.exports = {
                 // Keep the *.d.ts files clean of any linting suppressions.
                 // These files will be distributed as is as part of the npm package.
                 '@typescript-eslint/no-explicit-any': 'off',
+                '@typescript-eslint/no-unused-vars': 'off'
+            }
+        },
+        {
+            files: ['src/kernels/lite/pyodide-kernel/**/*.ts'],
+            rules: {
+                '*': 'off',
                 '@typescript-eslint/no-unused-vars': 'off',
+                'header/header': 'off',
+                '@typescript-eslint/no-explicit-any': 'off'
             }
         }
     ],
