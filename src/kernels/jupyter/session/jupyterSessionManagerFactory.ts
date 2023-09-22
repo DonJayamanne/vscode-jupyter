@@ -9,7 +9,6 @@ import { IJupyterConnection } from '../../types';
 import {
     IOldJupyterSessionManagerFactory,
     IJupyterSessionManager,
-    IJupyterBackingFileCreator,
     IJupyterKernelService,
     IJupyterRequestCreator
 } from '../types';
@@ -20,7 +19,6 @@ export class JupyterSessionManagerFactory implements IOldJupyterSessionManagerFa
         @inject(IConfigurationService) private config: IConfigurationService,
         @inject(IOutputChannel) @named(JUPYTER_OUTPUT_CHANNEL) private jupyterOutput: IOutputChannel,
         @inject(IJupyterKernelService) @optional() private readonly kernelService: IJupyterKernelService | undefined,
-        @inject(IJupyterBackingFileCreator) private readonly backingFileCreator: IJupyterBackingFileCreator,
         @inject(IJupyterRequestCreator) private readonly requestCreator: IJupyterRequestCreator,
         @inject(IAsyncDisposableRegistry) private readonly asyncDisposables: IAsyncDisposableRegistry
     ) {}
@@ -35,7 +33,6 @@ export class JupyterSessionManagerFactory implements IOldJupyterSessionManagerFa
             this.jupyterOutput,
             this.config,
             this.kernelService,
-            this.backingFileCreator,
             this.requestCreator,
             connInfo
         );

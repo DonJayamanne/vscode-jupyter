@@ -4,7 +4,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type * as nbformat from '@jupyterlab/nbformat';
-import type { ContentsManager } from '@jupyterlab/services';
 import { Event } from 'vscode';
 import { SemVer } from 'semver';
 import { Uri } from 'vscode';
@@ -218,17 +217,6 @@ export interface IJupyterServerUriStorage {
 export interface IBackupFile {
     dispose: () => Promise<unknown>;
     filePath: string;
-}
-
-export const IJupyterBackingFileCreator = Symbol('IJupyterBackingFileCreator');
-export interface IJupyterBackingFileCreator {
-    createBackingFile(
-        resource: Resource,
-        workingDirectory: Uri,
-        kernel: KernelConnectionMetadata,
-        connInfo: IJupyterConnection,
-        contentsManager: ContentsManager
-    ): Promise<IBackupFile | undefined>;
 }
 
 export const IJupyterKernelService = Symbol('IJupyterKernelService');

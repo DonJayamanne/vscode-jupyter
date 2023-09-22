@@ -31,7 +31,6 @@ import { JupyterKernelService } from '../../../kernels/jupyter/session/jupyterKe
 import { OldJupyterSession } from './oldJupyterSession';
 import { DisplayOptions } from '../../../kernels/displayOptions';
 import { FileSystem } from '../../../platform/common/platform/fileSystem.node';
-import { BackingFileCreator } from '../../../kernels/jupyter/session/backingFileCreator.node';
 import * as path from '../../../platform/vscode-path/path';
 import { JupyterRequestCreator } from '../../../kernels/jupyter/session/jupyterRequestCreator.node';
 import { JupyterInvalidKernelError } from '../../../kernels/errors/jupyterInvalidKernelError';
@@ -119,7 +118,6 @@ suite('Old JupyterSession', () => {
         when(sessionManager.connectTo(anything())).thenReturn(instance(session));
         const fs = mock<FileSystem>();
         const tmpFile = path.join('tmp', 'tempfile.json');
-        const backingFileCreator = new BackingFileCreator();
         const requestCreator = new JupyterRequestCreator();
         when(fs.createTemporaryLocalFile(anything())).thenResolve({ dispose: noop, filePath: tmpFile });
         when(fs.delete(anything())).thenResolve();
@@ -135,7 +133,6 @@ suite('Old JupyterSession', () => {
             Uri.file(''),
             1,
             instance(kernelService),
-            backingFileCreator,
             requestCreator,
             'jupyterExtension'
         );

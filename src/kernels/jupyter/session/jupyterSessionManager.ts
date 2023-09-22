@@ -11,7 +11,6 @@ import { raceTimeout } from '../../../platform/common/utils/async';
 import {
     IJupyterSessionManager,
     IJupyterKernelService,
-    IJupyterBackingFileCreator,
     IJupyterRequestCreator
 } from '../types';
 
@@ -38,7 +37,6 @@ export class JupyterSessionManager implements IJupyterSessionManager {
         private outputChannel: IOutputChannel,
         private configService: IConfigurationService,
         private readonly kernelService: IJupyterKernelService | undefined,
-        private readonly backingFileCreator: IJupyterBackingFileCreator,
         private readonly requestCreator: IJupyterRequestCreator,
         private readonly connInfo: IJupyterConnection
     ) {
@@ -102,7 +100,6 @@ export class JupyterSessionManager implements IJupyterSessionManager {
             workingDirectory,
             this.configService.getSettings(resource).jupyterLaunchTimeout,
             this.kernelService,
-            this.backingFileCreator,
             this.requestCreator,
             creator
         );

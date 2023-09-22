@@ -14,14 +14,12 @@ import { JupyterServerProvider } from './launcher/jupyterServerProvider.web';
 import { JupyterServerUriStorage } from './connection/serverUriStorage';
 import { LiveRemoteKernelConnectionUsageTracker } from './connection/liveRemoteKernelConnectionTracker';
 import { JupyterServerSelector } from './connection/serverSelector';
-import { BackingFileCreator } from './session/backingFileCreator.web';
 import { JupyterRequestCreator } from './session/jupyterRequestCreator.web';
 import { JupyterSessionManagerFactory } from './session/jupyterSessionManagerFactory';
 import {
     IOldJupyterSessionManagerFactory,
     IJupyterUriProviderRegistration,
     IJupyterServerUriStorage,
-    IJupyterBackingFileCreator,
     IJupyterKernelService,
     IJupyterServerProvider,
     IJupyterRequestCreator,
@@ -55,7 +53,6 @@ export function registerTypes(serviceManager: IServiceManager, _isDevMode: boole
         OldJupyterKernelSessionFactory
     );
     serviceManager.addSingleton<JupyterKernelSessionFactory>(JupyterKernelSessionFactory, JupyterKernelSessionFactory);
-    serviceManager.addSingleton<IJupyterBackingFileCreator>(IJupyterBackingFileCreator, BackingFileCreator);
     serviceManager.addSingleton<IJupyterServerProvider>(IJupyterServerProvider, JupyterServerProvider);
     serviceManager.addSingleton<IJupyterRequestCreator>(IJupyterRequestCreator, JupyterRequestCreator);
     serviceManager.addSingleton<JupyterConnection>(JupyterConnection, JupyterConnection);

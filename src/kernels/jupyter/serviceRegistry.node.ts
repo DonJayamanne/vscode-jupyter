@@ -29,7 +29,6 @@ import { JupyterServerStarter } from './launcher/jupyterServerStarter.node';
 import { JupyterServerUriStorage } from './connection/serverUriStorage';
 import { LiveRemoteKernelConnectionUsageTracker } from './connection/liveRemoteKernelConnectionTracker';
 import { JupyterServerSelector } from './connection/serverSelector';
-import { BackingFileCreator } from './session/backingFileCreator.node';
 import { JupyterRequestCreator } from './session/jupyterRequestCreator.node';
 import { JupyterSessionManagerFactory } from './session/jupyterSessionManagerFactory';
 import { RequestAgentCreator } from './session/requestAgentCreator.node';
@@ -41,7 +40,6 @@ import {
     IJupyterInterpreterDependencyManager,
     IJupyterUriProviderRegistration,
     IJupyterServerUriStorage,
-    IJupyterBackingFileCreator,
     IJupyterKernelService,
     INotebookStarter,
     IJupyterRequestCreator,
@@ -118,7 +116,6 @@ export function registerTypes(serviceManager: IServiceManager, _isDevMode: boole
         OldJupyterKernelSessionFactory
     );
     serviceManager.addSingleton<JupyterKernelSessionFactory>(JupyterKernelSessionFactory, JupyterKernelSessionFactory);
-    serviceManager.addSingleton<IJupyterBackingFileCreator>(IJupyterBackingFileCreator, BackingFileCreator);
     serviceManager.addSingleton<IJupyterRequestCreator>(IJupyterRequestCreator, JupyterRequestCreator);
     serviceManager.addSingleton<IJupyterRequestAgentCreator>(IJupyterRequestAgentCreator, RequestAgentCreator);
     serviceManager.addSingleton<JupyterConnection>(JupyterConnection, JupyterConnection);

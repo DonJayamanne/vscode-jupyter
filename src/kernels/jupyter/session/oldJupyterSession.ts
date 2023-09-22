@@ -12,7 +12,6 @@ import { waitForCondition } from '../../../platform/common/utils/async';
 import { DataScience } from '../../../platform/common/utils/localize';
 import { JupyterInvalidKernelError } from '../../errors/jupyterInvalidKernelError';
 import { SessionDisposedError } from '../../../platform/errors/sessionDisposedError';
-import { sendTelemetryEvent, Telemetry } from '../../../telemetry';
 import { BaseJupyterSession, JupyterSessionStartError } from '../../common/baseJupyterSession';
 import { getNameOfKernelConnection } from '../../helpers';
 import {
@@ -24,10 +23,10 @@ import {
     IJupyterKernelSession
 } from '../../types';
 import { DisplayOptions } from '../../displayOptions';
-import { IBackupFile, IJupyterBackingFileCreator, IJupyterKernelService, IJupyterRequestCreator } from '../types';
-import { generateBackingIPyNbFileName } from './backingFileCreator.base';
+import { IBackupFile, IJupyterKernelService, IJupyterRequestCreator } from '../types';
 import { noop } from '../../../platform/common/utils/misc';
 import * as path from '../../../platform/vscode-path/resources';
+import { generateBackingIPyNbFileName } from './backingFileCreator.base';
 
 // function is
 export class OldJupyterSession
@@ -45,7 +44,6 @@ export class OldJupyterSession
         override readonly workingDirectory: Uri,
         private readonly idleTimeout: number,
         private readonly kernelService: IJupyterKernelService | undefined,
-        private readonly backingFileCreator: IJupyterBackingFileCreator,
         private readonly requestCreator: IJupyterRequestCreator,
         private readonly sessionCreator: KernelActionSource
     ) {
@@ -111,7 +109,7 @@ export class OldJupyterSession
                 }
             } else {
                 traceVerbose(`createNewKernelSession ${this.kernelConnectionMetadata?.id}`);
-                newSession = await this.createSession(options);
+                newSession = await this.createSessionImpl(options);
                 newSession.resource = this.resource;
 
                 // Make sure it is idle before we return
@@ -158,7 +156,7 @@ export class OldJupyterSession
             traceVerbose(
                 `JupyterSession.createNewKernelSession ${tryCount}, id is ${this.kernelConnectionMetadata?.id}`
             );
-            result = await this.createSession({ token: cancelToken, ui });
+            result = await this.createSessionImpl({ token: cancelToken, ui });
             await this.waitForIdleOnSession(result, this.idleTimeout, cancelToken);
             return result;
         } catch (exc) {
@@ -191,55 +189,13 @@ export class OldJupyterSession
         return promise;
     }
 
-    private async createSession(options: {
-        token: CancellationToken;
-        ui: IDisplayOptions;
-    }): Promise<ISessionWithSocket> {
-        const telemetryInfo = {
-            failedWithoutBackingFile: false,
-            failedWithBackingFile: false,
-            localHost: this.connInfo.localLaunch
-        };
-
-        try {
-            return await this.createSessionImpl({ ...options, createBakingFile: false });
-        } catch (ex) {
-            traceWarning(`Failed to create a session without a backing file, trying again with a backing file`, ex);
-            try {
-                telemetryInfo.failedWithoutBackingFile = true;
-                return await this.createSessionImpl({
-                    ...options,
-                    createBakingFile: true
-                });
-            } catch (ex) {
-                telemetryInfo.failedWithBackingFile = true;
-                throw ex;
-            }
-        } finally {
-            sendTelemetryEvent(Telemetry.StartedRemoteJupyterSessionWithBackingFile, undefined, telemetryInfo);
-        }
-    }
-
     private async createSessionImpl(options: {
         token: CancellationToken;
         ui: IDisplayOptions;
-        createBakingFile: boolean;
     }): Promise<ISessionWithSocket> {
         const remoteSessionOptions = getRemoteSessionOptions(this.connInfo, this.resource);
         let backingFile: IBackupFile | undefined;
         let sessionPath = remoteSessionOptions?.path;
-
-        if (!sessionPath && options.createBakingFile) {
-            // Create our backing file for the notebook
-            backingFile = await this.backingFileCreator.createBackingFile(
-                this.resource,
-                this.workingDirectory,
-                this.kernelConnectionMetadata,
-                this.connInfo,
-                this.contentsManager
-            );
-            sessionPath = backingFile?.filePath;
-        }
 
         // Make sure the kernel has ipykernel installed if on a local machine.
         if (
