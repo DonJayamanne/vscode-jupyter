@@ -33,7 +33,6 @@ export class Kernels implements IKernels {
      */
     async startNew(options: Kernels.IKernelOptions): Promise<Kernel.IModel> {
         const { id, name, location } = options;
-        debugger;
         const factory = this._kernelspecs.factories.get(name);
         // bail if there is no factory associated with the requested kernel
         if (!factory) {

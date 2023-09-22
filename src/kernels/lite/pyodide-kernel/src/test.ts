@@ -11,8 +11,53 @@ import { ReadWrite } from '../../../../platform/common/types';
 // import WebSocketIsomorphic from 'isomorphic-ws';
 import { WebSocket } from 'mock-socket';
 import { Kernels } from './kernels/kernels';
+import { IWebSocketLike, KernelSocketWrapper } from '../../../common/kernelSocketWrapper';
+import { ClassType } from '../../../../platform/ioc/types';
+import { traceError } from '../../../../platform/logging';
+import { noop } from '../../../../platform/common/utils/misc';
+import { IKernelSocket } from '../../../types';
 
 const KERNELSPEC_SERVICE_URL = 'api/kernelspecs';
+
+export const WebSockets = new Map<string, IKernelSocket>();
+export function createWebSocketWrapper(ws: ClassType<IWebSocketLike>) {
+    class JupyterWebSocket extends KernelSocketWrapper(ws) {
+        private kernelId: string | undefined;
+        private timer: NodeJS.Timeout | number;
+
+        constructor(url: string, protocols?: string | string[] | undefined) {
+            super(url, protocols);
+            let timer: NodeJS.Timeout | undefined = undefined;
+            // Parse the url for the kernel id
+            const parsed = /.*\/kernels\/(.*)\/.*/.exec(url);
+            if (parsed && parsed.length > 1) {
+                this.kernelId = parsed[1];
+            }
+            if (this.kernelId) {
+                WebSockets.set(this.kernelId, this);
+                try {
+                    (this as any).on('close', () => {
+                        if (timer && this.timer !== timer) {
+                            clearInterval(timer as any);
+                        }
+                        if (WebSockets.get(this.kernelId!) === this) {
+                            WebSockets.delete(this.kernelId!);
+                        }
+                    });
+                } catch (ex) {
+                    //
+                }
+            } else {
+                traceError('KernelId not extracted from Kernel WebSocket URL');
+            }
+
+            // Ping the websocket connection every 30 seconds to make sure it stays alive
+            timer = this.timer = setInterval(() => (this as any).ping(noop), 30_000);
+        }
+    }
+    return JupyterWebSocket as any;
+}
+
 export function getSettings(): ServerConnection.ISettings {
     const pyodidOptions: IPyodideWorkerKernel.IOptions = {
         baseUrl: 'http://localhost:8015/',
@@ -130,7 +175,7 @@ export function getSettings(): ServerConnection.ISettings {
         appendToken: false,
         baseUrl,
         appUrl: 'http://localhost:8015/',
-        WebSocket: WebSocket,
+        WebSocket: createWebSocketWrapper(WebSocket as any),
         Request: nodeFetch.Request as any,
         Headers: nodeFetch.Headers as any,
         fetch: fetch as any,
