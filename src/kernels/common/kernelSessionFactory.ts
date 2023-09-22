@@ -3,7 +3,7 @@
 
 import { inject, injectable, optional } from 'inversify';
 import { IKernelSession, IKernelSessionFactory, isLocalConnection, KernelSessionCreationOptions } from '../types';
-import { IRawKernelSessionFactory, IOldRawKernelSessionFactory, IRawNotebookSupportedService } from '../raw/types';
+import { IRawKernelSessionFactory, IRawNotebookSupportedService } from '../raw/types';
 import { JupyterKernelSessionFactory } from '../jupyter/session/jupyterKernelSessionFactory';
 
 /**
@@ -15,9 +15,6 @@ export class KernelSessionFactory implements IKernelSessionFactory {
         @inject(IRawNotebookSupportedService)
         private readonly rawKernelSupported: IRawNotebookSupportedService,
 
-        @inject(IOldRawKernelSessionFactory)
-        @optional()
-        private readonly rawKernelSessionFactory: IOldRawKernelSessionFactory | undefined,
         @inject(IRawKernelSessionFactory)
         @optional()
         private readonly newRawKernelSessionFactory: IRawKernelSessionFactory | undefined,
@@ -30,7 +27,6 @@ export class KernelSessionFactory implements IKernelSessionFactory {
         if (
             this.rawKernelSupported.isSupported &&
             isLocalConnection(kernelConnection) &&
-            this.rawKernelSessionFactory &&
             this.newRawKernelSessionFactory
         ) {
             return this.newRawKernelSessionFactory.create({ ...options, kernelConnection: kernelConnection });
