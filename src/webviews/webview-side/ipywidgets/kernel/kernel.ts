@@ -78,6 +78,15 @@ class ProxyKernel implements IMessageHandler, Kernel.IKernelConnection {
     public get disposed() {
         return this.realKernel.disposed as any; // NOSONAR
     }
+    public get pendingInput() {
+        return this.realKernel.pendingInput as any; // NOSONAR
+    }
+    public get hasPendingInput() {
+        return this.realKernel.hasPendingInput as any; // NOSONAR
+    }
+    public removeInputGuard(): void {
+        this.realKernel.removeInputGuard();
+    }
     public clone(options?: Pick<Kernel.IKernelConnection.IOptions, 'clientId' | 'username' | 'handleComms'>) {
         return new ProxyKernel(
             {
@@ -241,8 +250,11 @@ class ProxyKernel implements IMessageHandler, Kernel.IKernelConnection {
     }): Promise<KernelMessage.ICommInfoReplyMsg> {
         return this.realKernel.requestCommInfo(content);
     }
-    public sendInputReply(content: KernelMessage.IInputReplyMsg['content']): void {
-        return this.realKernel.sendInputReply(content);
+    public sendInputReply(
+        content: KernelMessage.IInputReplyMsg['content'],
+        parent_header: KernelMessage.IHeader<'input_request'>
+    ): void {
+        return this.realKernel.sendInputReply(content, parent_header);
     }
     public registerCommTarget(
         targetName: string,

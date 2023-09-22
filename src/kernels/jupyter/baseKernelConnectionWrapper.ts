@@ -28,7 +28,8 @@ import type {
     IIOPubMessage,
     IOPubMessageType,
     IMessage,
-    MessageType
+    MessageType,
+    IHeader
 } from '@jupyterlab/services/lib/kernel/messages';
 import type { ISpecModel } from '@jupyterlab/services/lib/kernelspec/restapi';
 import type { JSONObject } from '@lumino/coreutils';
@@ -47,6 +48,7 @@ export abstract class BaseKernelConnectionWrapper implements Kernel.IKernelConne
     public readonly iopubMessage = new Signal<this, IIOPubMessage<IOPubMessageType>>(this);
     public readonly unhandledMessage = new Signal<this, IMessage<MessageType>>(this);
     public readonly anyMessage = new Signal<this, Kernel.IAnyMessageArgs>(this);
+    public readonly pendingInput = new Signal<this, boolean>(this);
     public get serverSettings() {
         return (this.possibleKernelConnection || this._previousKernelConnection).serverSettings;
     }
@@ -76,6 +78,10 @@ export abstract class BaseKernelConnectionWrapper implements Kernel.IKernelConne
                 }
             })
         );
+    }
+    hasPendingInput: boolean;
+    removeInputGuard(): void {
+        throw new Error('Method not implemented.');
     }
     abstract shutdown(): Promise<void>;
     abstract dispose(): void;
@@ -179,8 +185,11 @@ export abstract class BaseKernelConnectionWrapper implements Kernel.IKernelConne
     requestCommInfo(content: { target_name?: string | undefined }): Promise<ICommInfoReplyMsg> {
         return this.getKernelConnection().requestCommInfo(content);
     }
-    sendInputReply(content: IReplyErrorContent | IReplyAbortContent | IInputReply): void {
-        return this.getKernelConnection().sendInputReply(content);
+    sendInputReply(
+        content: IReplyErrorContent | IReplyAbortContent | IInputReply,
+        parent_header: IHeader<'input_request'>
+    ): void {
+        return this.getKernelConnection().sendInputReply(content, parent_header);
     }
     createComm(targetName: string, commId?: string): Kernel.IComm {
         return this.getKernelConnection().createComm(targetName, commId);

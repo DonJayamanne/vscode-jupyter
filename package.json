@@ -2033,7 +2033,9 @@
         "printTestResults": "gulp printTestResults",
         "setup-precommit-hook": "husky install",
         "webpack-analyze:node": "npx webpack --json --config build/webpack/webpack.extension.node.config.js > out/stats-node.json && yarn webpack-bundle-analyzer out/stats-node.json",
-        "webpack-analyze:web": "npx webpack --json --config build/webpack/webpack.extension.web.config.js > out/stats-web.json && yarn webpack-bundle-analyzer out/stats-web.json"
+        "webpack-analyze:web": "npx webpack --json --config build/webpack/webpack.extension.web.config.js > out/stats-web.json && yarn webpack-bundle-analyzer out/stats-web.json",
+        "worker-watch": "esbuild ./src/kernels/lite/pyodide-kernel/src/comlink.worker.ts --bundle --outfile=out/comlink.worker.js --sourcemap --format=esm --platform=node --target=es2018 --define:global=this --watch",
+        "main-watch": "esbuild ./src/kernels/lite/pyodide-kernel/src/test.ts --bundle --outfile=out/test.js --sourcemap --format=cjs --platform=node --target=es2018 --watch"
     },
     "dependencies": {
         "@enonic/fnv-plus": "^1.3.0",
@@ -2043,7 +2045,7 @@
         "@jupyter-widgets/schema": "0.4.0",
         "@jupyterlab/coreutils": "5.1.17",
         "@jupyterlab/nbformat": "3.1.17",
-        "@jupyterlab/services": "6.1.17",
+        "@jupyterlab/services": "^7.0.6",
         "@jupyterlite/contents": "^0.1.2",
         "@jupyterlite/kernel": "^0.1.2",
         "@lumino/widgets": "^1.28.0",
@@ -2053,6 +2055,7 @@
         "@vscode/python-extension": "^1.0.4",
         "ajv-keywords": "^3.5.2",
         "ansi-to-html": "^0.6.7",
+        "async-mutex": "^0.4.0",
         "bootstrap": "^4.3.1",
         "bootstrap-less": "^3.3.8",
         "commlink": "^0.2.3",
@@ -2101,6 +2104,7 @@
         "styled-components": "^5.2.1",
         "sudo-prompt": "^9.2.1",
         "svg-to-pdfkit": "^0.1.8",
+        "sync-request": "^6.1.0",
         "tcp-port-used": "^1.0.1",
         "tmp": "^0.0.29",
         "uint64be": "^1.0.1",
@@ -2200,6 +2204,7 @@
         "del": "^3.0.0",
         "es-abstract": "^1.19.1",
         "es5-ext": "^0.10.53",
+        "esbuild": "0.19.3",
         "eslint": "^8.45.0",
         "eslint-config-airbnb": "^19.0.4",
         "eslint-config-prettier": "^8.9.0",

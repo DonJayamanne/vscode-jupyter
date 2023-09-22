@@ -30,6 +30,7 @@ export class OldRawKernel implements Kernel.IKernelConnection {
     public readonly unhandledMessage = new Signal<this, IMessage<MessageType>>(this);
     public readonly anyMessage = new Signal<this, Kernel.IAnyMessageArgs>(this);
     public readonly disposed = new Signal<this, void>(this);
+    public readonly pendingInput = new Signal<this, boolean>(this);
     public get connectionStatus() {
         return this.realKernel.connectionStatus;
     }
@@ -74,6 +75,13 @@ export class OldRawKernel implements Kernel.IKernelConnection {
         this.startHandleKernelMessages();
         // Pretend like an open occurred. This will prime the real kernel to be connected
         socket.emit('open');
+    }
+    hasPendingInput: boolean;
+    /**
+     * Remove the input guard, if any.
+     */
+    removeInputGuard() {
+        this.hasPendingInput = false;
     }
     public createComm(targetName: string, commId?: string): Kernel.IComm {
         return this.realKernel.createComm(targetName, commId);
@@ -206,8 +214,11 @@ export class OldRawKernel implements Kernel.IKernelConnection {
     }): Promise<KernelMessage.ICommInfoReplyMsg> {
         return this.realKernel.requestCommInfo(content);
     }
-    public sendInputReply(content: KernelMessage.IInputReplyMsg['content']): void {
-        return this.realKernel.sendInputReply(content);
+    public sendInputReply(
+        content: KernelMessage.IInputReplyMsg['content'],
+        parent_header: KernelMessage.IHeader<'input_request'>
+    ): void {
+        return this.realKernel.sendInputReply(content, parent_header);
     }
     public registerCommTarget(
         targetName: string,

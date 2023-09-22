@@ -95,16 +95,8 @@ export class JupyterLabHelper {
         // Not refreshing will result in `running` returning an empty iterator.
         await this.sessionManager.refreshRunning();
 
-        const sessions: Session.IModel[] = [];
         const iterator = this.sessionManager.running();
-        let session = iterator.next();
-
-        while (session) {
-            sessions.push(session);
-            session = iterator.next();
-        }
-
-        return sessions;
+        return Array.from(iterator);
     }
 
     public async getRunningKernels(): Promise<IJupyterKernel[]> {

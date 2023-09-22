@@ -62,6 +62,7 @@ export abstract class BaseJupyterSessionConnection<
     anyMessage = new Signal<this, Kernel.IAnyMessageArgs>(this);
     protected onStatusChangedEvent = new EventEmitter<KernelMessage.Status>();
     protected readonly disposables: IDisposable[] = [];
+    pendingInput = new Signal<this, boolean>(this);
 
     constructor(
         public readonly kind: T,
@@ -209,7 +210,9 @@ export abstract class BaseJupyterSessionConnection<
                         const jupyterLabSerialize =
                             require('@jupyterlab/services/lib/kernel/serialize') as typeof import('@jupyterlab/services/lib/kernel/serialize'); // NOSONAR
                         const message =
-                            typeof msg.msg === 'string' || msg.msg instanceof ArrayBuffer
+                            typeof msg.msg === 'string'
+                                ? JSON.parse(msg.msg)
+                                : msg.msg instanceof ArrayBuffer
                                 ? jupyterLabSerialize.deserialize(msg.msg)
                                 : msg.msg;
                         this._wrappedKernel.anyMessage.emit({ direction: msg.direction, msg: message });

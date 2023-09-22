@@ -45,6 +45,7 @@ export class OldRawSession implements ISessionWithSocket {
     private readonly signaling: typeof import('@lumino/signaling');
     private _jupyterLabServices?: typeof import('@jupyterlab/services');
     private cellExecutedSuccessfully?: boolean;
+    public readonly pendingInput = new Signal<this, boolean>(this);
     public get atleastOneCellExecutedSuccessfully() {
         return this.cellExecutedSuccessfully === true;
     }
