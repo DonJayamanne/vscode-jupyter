@@ -13,7 +13,9 @@ import { PyodideRemoteKernel } from './worker';
 // expose(worker);
 
 async function main() {
+    // @ts-ignore no need of types
     const Comlink = await import('comlink/dist/esm/comlink.mjs');
+    // @ts-ignore no need of types
     const nodeEndpoint = await import('comlink/dist/esm/node-adapter.mjs');
     const worker = new PyodideRemoteKernel();
     Comlink.expose(worker, nodeEndpoint.default(parentPort));

@@ -602,7 +602,8 @@ function newRawKernel(kernelProcess: IKernelProcess, clientId: string, username:
         // Note, this is done with a postInstall step (found in build\ci\postInstall.js). In that post install step
         // we eliminate the serialize import from the default kernel and remap it to do nothing.
         nonSerializingKernel =
-            require('@jupyterlab/services/lib/kernel/nonSerializingKernel') as typeof import('@jupyterlab/services/lib/kernel/default'); // NOSONAR
+            require('node_modules/@jupyterlab/services/lib/kernel/default.js') as typeof import('@jupyterlab/services/lib/kernel/default'); // NOSONAR
+        // require('@jupyterlab/services/lib/kernel/nonSerializingKernel') as typeof import('@jupyterlab/services/lib/kernel/default'); // NOSONAR
     }
     const realKernel = new nonSerializingKernel.KernelConnection({
         serverSettings: settings,

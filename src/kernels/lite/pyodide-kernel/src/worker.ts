@@ -7,6 +7,11 @@ import type { DriveFS } from '@jupyterlite/contents';
 
 import type { IPyodideWorkerKernel } from './tokens';
 
+function sendMessage(message: string) {
+    // eslint-disable-next-line local-rules/node-imports
+    const { parentPort } = require('worker_threads');
+    parentPort.postMessage({ log: message });
+}
 export class PyodideRemoteKernel {
     name = 'Hello World';
     constructor() {
@@ -15,7 +20,7 @@ export class PyodideRemoteKernel {
         });
     }
 
-    async doSomething(){
+    async doSomething() {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         return 'Completed';
     }
@@ -56,13 +61,20 @@ export class PyodideRemoteKernel {
         let loadPyodide: typeof Pyodide.loadPyodide;
         // if (pyodideUrl.endsWith('.mjs')) {
         // note: this does not work at all in firefox
+        sendMessage(`Loading PYiodide from ${pyodideUrl}`);
+        // const pyodideModule: typeof Pyodide = require(/* webpackIgnore: true */ pyodideUrl);
         const pyodideModule: typeof Pyodide = await import(/* webpackIgnore: true */ pyodideUrl);
         loadPyodide = pyodideModule.loadPyodide;
         // } else {
         //     importScripts(pyodideUrl);
         //     loadPyodide = (self as any).loadPyodide;
         // }
-        this._pyodide = await loadPyodide({ indexURL: indexUrl });
+        this._pyodide = await loadPyodide({
+            indexURL: indexUrl,
+            stdout(msg) {
+                sendMessage(`Python Output >> ${msg}`);
+            }
+        });
     }
 
     protected async initPackageManager(_options: IPyodideWorkerKernel.IOptions): Promise<void> {
@@ -73,6 +85,9 @@ export class PyodideRemoteKernel {
         const { pipliteWheelUrl, disablePyPIFallback, pipliteUrls } = this._options;
 
         await this._pyodide.loadPackage(['micropip']);
+        sendMessage('Installed Micropip');
+        sendMessage(`Installing ${pipliteWheelUrl}`);
+
         // get piplite early enough to impact pyodide dependencies
         await this._pyodide.runPythonAsync(`
         import micropip
@@ -82,6 +97,23 @@ export class PyodideRemoteKernel {
         piplite.piplite._PIPLITE_URLS = ${JSON.stringify(pipliteUrls)}
         print('Hello World')
         `);
+        sendMessage(`Installed ${pipliteWheelUrl}`);
+        sendMessage(`Get Files`);
+        await this._pyodide.runPythonAsync(`
+        import os
+        print(os.getcwd())
+        print(os.listdir(os.getcwd()))
+        `);
+        sendMessage(`Printed getcwd`);
+        // // get piplite early enough to impact pyodide dependencies
+        // await this._pyodide.runPythonAsync(`
+        // import micropip
+        // await micropip.install('${pipliteWheelUrl}', keep_going=True)
+        // import piplite.piplite
+        // piplite.piplite._PIPLITE_DISABLE_PYPI = ${disablePyPIFallback ? 'True' : 'False'}
+        // piplite.piplite._PIPLITE_URLS = ${JSON.stringify(pipliteUrls)}
+        // print('Hello World')
+        // `);
     }
 
     protected async initKernel(options: IPyodideWorkerKernel.IOptions): Promise<void> {
@@ -118,23 +150,52 @@ export class PyodideRemoteKernel {
     protected async initFilesystem(options: IPyodideWorkerKernel.IOptions): Promise<void> {
         if (options.mountDrive) {
             const mountpoint = '/drive';
-            const { FS, PATH, ERRNO_CODES } = this._pyodide;
-            const { baseUrl } = options;
-            const { DriveFS } = await import('@jupyterlite/contents');
+            const { FS } = this._pyodide;
+            // sendMessage(`FS.filesystems ${typeof FS.fileSystems}`)
+            sendMessage(`FS.keys ${Object.keys(FS.filesystems)}`);
+            // const { baseUrl } = options;
+            // const { DriveFS } = await import('@jupyterlite/contents');
 
-            const driveFS = new DriveFS({
-                FS,
-                PATH,
-                ERRNO_CODES,
-                baseUrl,
-                driveName: this._driveName,
-                mountpoint
-            });
+            // const driveFS = new DriveFS({
+            //     FS,
+            //     PATH,
+            //     ERRNO_CODES,
+            //     baseUrl,
+            //     driveName: this._driveName,
+            //     mountpoint
+            // });
             FS.mkdir(mountpoint);
-            FS.mount(driveFS, {}, mountpoint);
+            FS.mount(
+                FS.filesystems.NODEFS,
+                {
+                    root: '/Users/donjayamanne/Desktop/development/vsc/vscode-jupyter/src/kernels/lite/pyodide-kernel/style'
+                },
+                mountpoint
+            );
             FS.chdir(mountpoint);
-            this._driveFS = driveFS;
+            this._driveFS = FS.filesystems.NODEFS;
         }
+        // if (options.mountDrive) {
+        //     const mountpoint = '/drive';
+        //     const { FS, PATH, ERRNO_CODES } = this._pyodide;
+        //     // sendMessage(`FS.filesystems ${typeof FS.fileSystems}`)
+        //     sendMessage(`FS.keys ${Object.keys(FS.filesystems)}`)
+        //     const { baseUrl } = options;
+        //     const { DriveFS } = await import('@jupyterlite/contents');
+
+        //     const driveFS = new DriveFS({
+        //         FS,
+        //         PATH,
+        //         ERRNO_CODES,
+        //         baseUrl,
+        //         driveName: this._driveName,
+        //         mountpoint
+        //     });
+        //     FS.mkdir(mountpoint);
+        //     FS.mount(driveFS, {}, mountpoint);
+        //     FS.chdir(mountpoint);
+        //     this._driveFS = driveFS;
+        // }
     }
 
     /**

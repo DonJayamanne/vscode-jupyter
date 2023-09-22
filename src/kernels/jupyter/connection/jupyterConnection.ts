@@ -21,6 +21,9 @@ import { IConfigurationService } from '../../../platform/common/types';
 import { RemoteJupyterServerConnectionError } from '../../../platform/errors/remoteJupyterServerConnectionError';
 import { Uri } from 'vscode';
 import { JupyterLabHelper } from '../session/jupyterLabHelper';
+import { getSettings } from '../../lite/pyodide-kernel/src/test';
+import { IJupyterConnection } from '../../types';
+import { JVSC_EXTENSION_ID } from '../../../platform/common/constants';
 
 /**
  * Creates IJupyterConnection objects for URIs and 3rd party handles/ids.
@@ -41,7 +44,19 @@ export class JupyterConnection {
         private readonly requestCreator: IJupyterRequestCreator
     ) {}
 
-    public async createConnectionInfo(serverId: JupyterServerProviderHandle) {
+    public async createConnectionInfo(serverId: JupyterServerProviderHandle): Promise<IJupyterConnection> {
+        if (serverId) {
+            const settings = getSettings();
+            return {
+                baseUrl: settings.baseUrl,
+                displayName: '',
+                localLaunch: false,
+                rootDirectory: Uri.file(''),
+                serverProviderHandle: { extensionId: JVSC_EXTENSION_ID, id: '_builtin_server', handle: '1' },
+                dispose: noop,
+                settings: settings
+            };
+        }
         const serverUri = await this.getJupyterServerUri(serverId);
         return createJupyterConnectionInfo(
             serverId,

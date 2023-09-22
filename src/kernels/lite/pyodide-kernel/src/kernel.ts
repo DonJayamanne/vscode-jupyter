@@ -2,13 +2,16 @@ import { PromiseDelegate } from '@lumino/coreutils';
 
 import { PageConfig } from '@jupyterlab/coreutils';
 import { KernelMessage } from '@jupyterlab/services';
+// eslint-disable-next-line local-rules/node-imports
+import { Worker } from 'worker_threads';
 
-import { BaseKernel, IKernel } from '@jupyterlite/kernel';
+import type { IKernel } from '@jupyterlite/kernel';
 
-import { wrap } from 'comlink';
+// import { wrap } from 'comlink';
 
 import { IPyodideWorkerKernel, IRemotePyodideWorkerKernel } from './tokens';
 import { noop } from '../../../../platform/common/utils/misc';
+import { BaseKernel } from './kernels/kernel';
 
 /**
  * A kernel that executes Python code with Pyodide.
@@ -22,8 +25,11 @@ export class PyodideKernel extends BaseKernel implements IKernel {
     constructor(options: PyodideKernel.IOptions) {
         super(options);
         this._worker = this.initWorker(options);
-        this._worker.onmessage = (e) => this._processWorkerMessage(e.data);
-        this._remoteKernel = wrap(this._worker);
+        this._worker.on('message', (e) => this._processWorkerMessage(e));
+        // @ts-ignore no need of types
+        const nodeEndpoint = require('/Users/donjayamanne/Desktop/development/vsc/vscode-jupyter/src/kernels/lite/pyodide-kernel/src/comlink/node-adapter.js');
+        const Comlink = require('/Users/donjayamanne/Desktop/development/vsc/vscode-jupyter/src/kernels/lite/pyodide-kernel/src/comlink/comlink.node.js');
+        this._remoteKernel = Comlink.wrap(nodeEndpoint(this._worker));
         this.initRemote(options).then(noop, noop);
     }
 
@@ -37,12 +43,13 @@ export class PyodideKernel extends BaseKernel implements IKernel {
      */
     protected initWorker(_options: PyodideKernel.IOptions): Worker {
         // return new Worker(new URL( './comlink.worker.js', import.meta.url), {
-        return new Worker(
-            '/Users/donjayamanne/Desktop/development/vsc/vscode-jupyter/out/kernels/lite/pyodide-kernel/src/comlink.worker.js',
-            {
-                type: 'module'
-            }
-        );
+        return new Worker('/Users/donjayamanne/Desktop/development/vsc/vscode-jupyter/out/comlink.worker.js');
+        // return new Worker(
+        //     '/Users/donjayamanne/Desktop/development/vsc/vscode-jupyter/out/kernels/lite/pyodide-kernel/src/comlink.worker.js',
+        //     {
+        //         type: 'module'
+        //     }
+        // );
     }
 
     protected async initRemote(options: PyodideKernel.IOptions): Promise<void> {
@@ -79,7 +86,7 @@ export class PyodideKernel extends BaseKernel implements IKernel {
         if (this.isDisposed) {
             return;
         }
-        this._worker.terminate();
+        this._worker.terminate().catch(noop);
         (this._worker as any) = null;
         super.dispose();
     }
