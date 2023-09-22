@@ -164,15 +164,10 @@ suite('New Jupyter Kernel Session Factory', () => {
 
         when(connection.localLaunch).thenReturn(true);
         when(connection.baseUrl).thenReturn('http://localhost:8888');
-        when(connection.hostName).thenReturn('localhost');
         when(connection.displayName).thenReturn('Hello World');
         when(connection.dispose()).thenReturn();
-        when(connection.getAuthHeader).thenReturn();
-        when(connection.getWebsocketProtocols).thenReturn();
         when(connection.mappedRemoteNotebookDir).thenReturn();
-        when(connection.providerId).thenReturn('_builtin.something');
         when(connection.rootDirectory).thenReturn(Uri.file('someDir'));
-        when(connection.token).thenReturn('1234');
 
         const stub: JupyterLabHelper = {
             contentsManager: instance(contentsManager),

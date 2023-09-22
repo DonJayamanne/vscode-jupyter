@@ -102,7 +102,6 @@ export function createJupyterConnectionInfo(
 ): IJupyterConnection {
     const baseUrl = serverUri.baseUrl;
     const token = serverUri.token;
-    const hostName = new URL(serverUri.baseUrl).hostname;
     const webSocketProtocols = (serverUri?.webSocketProtocols || []).length ? serverUri?.webSocketProtocols || [] : [];
     const authHeader =
         serverUri.authorizationHeader && Object.keys(serverUri?.authorizationHeader ?? {}).length > 0
@@ -155,10 +154,7 @@ export function createJupyterConnectionInfo(
 
     const connection: IJupyterConnection = {
         baseUrl,
-        providerId: jupyterHandle.id,
         serverProviderHandle: jupyterHandle,
-        token,
-        hostName,
         localLaunch,
         displayName:
             serverUri && serverUri.displayName
@@ -171,8 +167,6 @@ export function createJupyterConnectionInfo(
         mappedRemoteNotebookDir: serverUri?.mappedRemoteNotebookDir || (serverUri as any)?.workingDirectory,
         // For remote jupyter servers that are managed by us, we can provide the auth header.
         // Its crucial this is set to undefined, else password retrieval will not be attempted.
-        getAuthHeader,
-        getWebsocketProtocols,
         settings: ServerConnection.makeSettings(serverSettings)
     };
     return connection;
