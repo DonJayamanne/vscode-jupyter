@@ -146,7 +146,8 @@ export function createJupyterConnectionInfo(
         WebSocket: serverUri.WebSocket
             ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
               requestCreator.wrapWebSocketCtor(serverUri.WebSocket as any)
-            : (requestCreator.getWebsocketCtor(
+            : //   serverUri.WebSocket
+              (requestCreator.getWebsocketCtor(
                   undefined,
                   allowUnauthorized,
                   getAuthHeader,

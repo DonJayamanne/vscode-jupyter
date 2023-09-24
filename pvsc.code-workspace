@@ -5,22 +5,8 @@
             "name": "vscode-jupyter"
         },
         {
-            "path": "pythonFiles"
-        },
-        {
-            "path": "src/ipywidgets"
-        },
-        {
-            "name": "vscode-notebook-renderers",
-            "path": "../vscode-notebook-renderers"
-        },
-        {
             "name": "vscode-python",
-            "path": "../vscode-python"
-        },
-        {
-            "name": "vscode-jupyter-powertoys",
-            "path": "../vscode-jupyter-powertoys"
+            "path": "/Users/donjayamanne/Desktop/development/vsc/vscode-jupyter-wasm"
         }
     ],
     "settings": {

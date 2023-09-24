@@ -110,7 +110,7 @@ type Hook = (...args: unknown[]) => Promise<void>;
  */
 abstract class BaseKernel implements IBaseKernel {
     protected readonly disposables: IDisposable[] = [];
-    private _ipywidgetsVersion?: 7 | 8;
+    private _ipywidgetsVersion?: 7 | 8 = 8;
     public get ipywidgetsVersion() {
         return this._ipywidgetsVersion;
     }
@@ -831,7 +831,7 @@ abstract class BaseKernel implements IBaseKernel {
                 const newVersion = (this._ipywidgetsVersion = isVersion7 ? 7 : isVersion8 ? 8 : undefined);
                 traceVerbose(`Determined IPyWidgets Version as ${newVersion} and event fired`);
                 // If user does not have ipywidgets installed, then this event will never get fired.
-                this._ipywidgetsVersion == newVersion;
+                this._ipywidgetsVersion == 8; //newVersion;
                 this._onIPyWidgetVersionResolved.fire(newVersion);
             } else {
                 traceWarning('Failed to determine IPyKernel Version', JSON.stringify(version));
