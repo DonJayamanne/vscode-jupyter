@@ -546,20 +546,12 @@ export interface IJupyterConnection extends Disposable {
     readonly localLaunch: boolean;
     displayName: string;
     readonly baseUrl: string;
-    readonly token: string;
-    readonly providerId: string;
     readonly serverProviderHandle: JupyterServerProviderHandle;
-    readonly hostName: string;
     settings: ServerConnection.ISettings;
     /**
      * Directory where the notebook server was started.
      */
     readonly rootDirectory: Uri;
-    getAuthHeader?(): Record<string, string>;
-    /**
-     * Returns the sub-protocols to be used. See details of `protocols` here https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/WebSocket
-     */
-    getWebsocketProtocols?(): string[];
     /**
      * Maps to IJupyterServerUri.mappedRemoteNotebookDir
      * @see IJupyterServerUri

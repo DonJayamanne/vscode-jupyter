@@ -117,8 +117,6 @@ suite('Jupyter Connection Waiter', async () => {
 
         assert.equal(connection.localLaunch, true);
         assert.equal(connection.baseUrl, expectedServerInfo.url);
-        assert.equal(connection.hostName, expectedServerInfo.hostname);
-        assert.equal(connection.token, expectedServerInfo.token);
     });
     test('Throw timeout error', async () => {
         (<any>dsSettings).jupyterLaunchTimeout = 10;

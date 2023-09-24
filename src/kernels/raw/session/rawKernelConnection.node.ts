@@ -52,6 +52,8 @@ export class RawKernelConnection implements Kernel.IKernelConnection {
     public readonly unhandledMessage = new Signal<this, IMessage<MessageType>>(this);
     public readonly anyMessage = new Signal<this, Kernel.IAnyMessageArgs>(this);
     public readonly disposed = new Signal<this, void>(this);
+    public readonly pendingInput = new Signal<this, boolean>(this);
+    hasPendingInput: boolean;
     public get connectionStatus() {
         return this.realKernel ? this.realKernel.connectionStatus : 'connecting';
     }
@@ -112,6 +114,12 @@ export class RawKernelConnection implements Kernel.IKernelConnection {
             name: this.name,
             id: this.id
         };
+    }
+    /**
+     * Remove the input guard, if any.
+     */
+    removeInputGuard() {
+        this.hasPendingInput = false;
     }
     public async restart(): Promise<void> {
         this.stopHandlingKernelMessages();
@@ -396,8 +404,11 @@ export class RawKernelConnection implements Kernel.IKernelConnection {
     }): Promise<KernelMessage.ICommInfoReplyMsg> {
         return this.realKernel!.requestCommInfo(content);
     }
-    public sendInputReply(content: KernelMessage.IInputReplyMsg['content']): void {
-        return this.realKernel!.sendInputReply(content);
+    public sendInputReply(
+        content: KernelMessage.IInputReplyMsg['content'],
+        parent_header: KernelMessage.IHeader<'input_request'>
+    ): void {
+        return this.realKernel!.sendInputReply(content, parent_header);
     }
     public registerCommTarget(
         targetName: string,
@@ -591,7 +602,8 @@ function newRawKernel(kernelProcess: IKernelProcess, clientId: string, username:
         // Note, this is done with a postInstall step (found in build\ci\postInstall.js). In that post install step
         // we eliminate the serialize import from the default kernel and remap it to do nothing.
         nonSerializingKernel =
-            require('@jupyterlab/services/lib/kernel/nonSerializingKernel') as typeof import('@jupyterlab/services/lib/kernel/default'); // NOSONAR
+            require('node_modules/@jupyterlab/services/lib/kernel/default.js') as typeof import('@jupyterlab/services/lib/kernel/default'); // NOSONAR
+        // require('@jupyterlab/services/lib/kernel/nonSerializingKernel') as typeof import('@jupyterlab/services/lib/kernel/default'); // NOSONAR
     }
     const realKernel = new nonSerializingKernel.KernelConnection({
         serverSettings: settings,

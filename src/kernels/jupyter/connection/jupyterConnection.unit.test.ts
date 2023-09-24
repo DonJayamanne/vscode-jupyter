@@ -143,7 +143,6 @@ suite('Jupyter Connection', async () => {
 
         assert.ok(connection, 'Connection not returned');
         assert.strictEqual(connection.baseUrl, uriInfo.baseUrl, 'Base url is incorrect');
-        assert.deepEqual(connection.getAuthHeader!(), uriInfo.authorizationHeader, 'Auth Headers are incorrect');
     });
     test('Ensure there is no Auth header', async () => {
         when(sessionManager.dispose()).thenResolve();
@@ -162,6 +161,5 @@ suite('Jupyter Connection', async () => {
 
         assert.ok(connection, 'Connection not returned');
         assert.strictEqual(connection.baseUrl, uriInfo.baseUrl, 'Base url is incorrect');
-        assert.isUndefined(connection.getAuthHeader, 'There should be no auth header');
     });
 });

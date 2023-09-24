@@ -125,6 +125,7 @@ export abstract class BaseJupyterSession<T extends 'remoteJupyter' | 'localJupyt
      */
     anyMessage = new Signal<this, Kernel.IAnyMessageArgs>(this);
     disposed = new Signal<this, void>(this);
+    pendingInput = new Signal<this, boolean>(this);
     /**
      * Keep a single instance of KernelConnectionWrapper.
      * This way when sessions change, we still have a single Kernel.IKernelConnection proxy (wrapper),
@@ -441,7 +442,9 @@ export abstract class BaseJupyterSession<T extends 'remoteJupyter' | 'localJupyt
                             const jupyterLabSerialize =
                                 require('@jupyterlab/services/lib/kernel/serialize') as typeof import('@jupyterlab/services/lib/kernel/serialize'); // NOSONAR
                             const message =
-                                typeof msg.msg === 'string' || msg.msg instanceof ArrayBuffer
+                                typeof msg.msg === 'string'
+                                    ? JSON.parse(msg.msg)
+                                    : msg.msg instanceof ArrayBuffer
                                     ? jupyterLabSerialize.deserialize(msg.msg)
                                     : msg.msg;
                             this._wrappedKernel.anyMessage.emit({ direction: msg.direction, msg: message });

@@ -8,7 +8,7 @@ import { traceError } from '../../platform/logging';
 import { IKernelSocket } from '../types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export type IWebSocketLike = {
+export interface IWebSocketLike {
     onopen: ((this: any, event: any) => void) | null;
     onerror: ((this: any, event: any) => void) | null;
     onclose: ((this: any, event: any) => void) | null;

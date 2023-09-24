@@ -24,10 +24,11 @@ import { traceLog } from '../../platform/logging';
 import { reportAction } from '../../platform/progress/decorator';
 import { ReportableAction } from '../../platform/progress/types';
 import { SessionDisposedError } from '../../platform/errors/sessionDisposedError';
-import { IBackupFile, IJupyterBackingFileCreator } from '../../kernels/jupyter/types';
+import { IBackupFile } from '../../kernels/jupyter/types';
 import { Resource } from '../../platform/common/types';
 import { noop } from '../../platform/common/utils/misc';
 import { JupyterConnection } from '../../kernels/jupyter/connection/jupyterConnection';
+import { createBackingFile } from '../../kernels/jupyter/session/backingFileCreator.base';
 
 /**
  * Base class for exporting on web. Uses the kernel to perform the export and then translates the blob sent back to a file.
@@ -39,7 +40,6 @@ export class ExportBase implements INbConvertExport, IExportBase {
         @inject(IFileSystem) private readonly fs: IFileSystem,
         @inject(IExportDialog) protected readonly filePicker: IExportDialog,
         @inject(ExportUtilBase) protected readonly exportUtil: ExportUtilBase,
-        @inject(IJupyterBackingFileCreator) private readonly backingFileCreator: IJupyterBackingFileCreator,
         @inject(JupyterConnection) private readonly jupyterConnection: JupyterConnection
     ) {}
 
@@ -104,7 +104,7 @@ export class ExportBase implements INbConvertExport, IExportBase {
                 break;
         }
 
-        const backingFile = await this.backingFileCreator.createBackingFile(
+        const backingFile = await createBackingFile(
             resource,
             Uri.file(''),
             kernelConnectionMetadata,
@@ -180,7 +180,7 @@ export class ExportBase implements INbConvertExport, IExportBase {
             return;
         }
 
-        const backingFile = await this.backingFileCreator.createBackingFile(
+        const backingFile = await createBackingFile(
             resource,
             Uri.file(''),
             kernelConnectionMetadata,

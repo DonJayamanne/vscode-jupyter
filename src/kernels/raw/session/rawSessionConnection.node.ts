@@ -34,6 +34,7 @@ export class RawSessionConnection implements INewSessionWithSocket {
     public readonly unhandledMessage = new Signal<this, KernelMessage.IMessage>(this);
     public readonly anyMessage = new Signal<this, Kernel.IAnyMessageArgs>(this);
     public readonly disposed = new Signal<this, void>(this);
+    public readonly pendingInput = new Signal<this, boolean>(this);
     public readonly connectionStatusChanged = new Signal<this, Kernel.ConnectionStatus>(this);
     public readonly propertyChanged = new Signal<this, 'path' | 'name' | 'type'>(this);
     private _jupyterLabServices?: typeof import('@jupyterlab/services');
