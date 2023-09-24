@@ -47,7 +47,7 @@ import { getNameOfKernelConnection, jvscIdentifier } from '../../helpers';
 import { waitForCondition } from '../../../platform/common/utils/async';
 import { JupyterLabHelper } from './jupyterLabHelper';
 import { JupyterSessionWrapper, getRemoteSessionOptions } from './jupyterSession';
-import { WebSockets } from '../../lite/pyodide-kernel/src/test';
+// import { WebSockets } from '../../lite/pyodide-kernel/src/test';
 
 @injectable()
 export class JupyterKernelSessionFactory implements IKernelSessionFactory {
@@ -396,7 +396,7 @@ export class JupyterKernelSessionFactory implements IKernelSessionFactory {
                 get socket() {
                     // When we restart kernels, a new websocket is created and we need to get the new one.
                     // & the id in the dictionary is the kernel.id.
-                    return requestCreator.getWebsocket(session.kernel!.id) || WebSockets.get(session.kernel!.id);
+                    return requestCreator.getWebsocket(session.kernel!.id); //|| WebSockets.get(session.kernel!.id);
                 },
                 options: {
                     clientId: session.kernel.clientId,

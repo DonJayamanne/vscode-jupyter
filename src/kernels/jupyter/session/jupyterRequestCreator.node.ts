@@ -142,20 +142,28 @@ export class JupyterRequestCreator implements IJupyterRequestCreator {
                 }
                 if (this.kernelId) {
                     JupyterWebSockets.set(this.kernelId, this);
-                    this.on('close', () => {
+                    const onclose = () => {
                         if (timer && this.timer !== timer) {
                             clearInterval(timer as any);
                         }
                         if (JupyterWebSockets.get(this.kernelId!) === this) {
                             JupyterWebSockets.delete(this.kernelId!);
                         }
-                    });
+                    };
+                    if (this.on) {
+                        this.on('close', () => onclose());
+                    }
+                    if (this.onclose) {
+                        this.onclose = () => onclose();
+                    }
                 } else {
                     traceError('KernelId not extracted from Kernel WebSocket URL');
                 }
 
                 // Ping the websocket connection every 30 seconds to make sure it stays alive
-                timer = this.timer = setInterval(() => this.ping(noop), 30_000);
+                if (this.ping) {
+                    timer = this.timer = setInterval(() => this.ping(noop), 30_000);
+                }
             }
         }
         return JupyterWebSocket as any;
