@@ -12,6 +12,10 @@ function sendMessage(message: string) {
     const { parentPort } = require('worker_threads');
     parentPort.postMessage({ log: message });
 }
+// eslint-disable-next-line local-rules/node-imports
+const { parentPort } = require('worker_threads');
+const postMessage = parentPort.postMessage.bind(parentPort);
+
 export class PyodideRemoteKernel {
     name = 'Hello World';
     constructor() {
@@ -286,6 +290,7 @@ export class PyodideRemoteKernel {
                 metadata: this.formatResult(metadata),
                 transient: this.formatResult(transient)
             };
+
             postMessage({
                 parentHeader: this.formatResult(this._kernel._parent_header)['header'],
                 bundle,
