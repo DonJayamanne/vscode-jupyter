@@ -59,6 +59,26 @@ export function KernelSocketWrapper<T extends ClassType<IWebSocketLike>>(SuperCl
         private sendChain: Promise<any>;
         private _onAnyMessage = new EventEmitter<{ msg: string; direction: 'send' }>();
         public onAnyMessage = this._onAnyMessage.event;
+        // @ts-ignore For pyodide we need to override the onmessage method
+        public override set onmessage(oldHandler: (e: MessageEvent) => void) {
+            const customHandler = (e: MessageEvent) => {
+                if (this.receiveHooks.length) {
+                    // Stick the receive hooks into the message chain. We use chain
+                    // to ensure that:
+                    // a) Hooks finish before we fire the event for real
+                    // b) Event fires
+                    // c) Next message happens after this one (so this side can handle the message before another event goes through)
+                    this.msgChain = this.msgChain
+                        .then(() => Promise.all(this.receiveHooks.map((p) => p((e as any).data))))
+                        .then(() => oldHandler(e))
+                        .catch((e) => traceError(`Exception while handling messages: ${e}`));
+                    // True value indicates there were handlers. We definitely have 'message' handlers.
+                    return true;
+                }
+                return oldHandler(e);
+            };
+            super.onmessage = customHandler;
+        }
         constructor(...rest: any[]) {
             super(...rest);
             // Make sure the message chain is initialized
