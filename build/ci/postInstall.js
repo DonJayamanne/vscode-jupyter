@@ -17,6 +17,7 @@ const { downloadZMQ } = require('@vscode/zeromq');
  * at runtime.
  */
 function createJupyterKernelWithoutSerialization() {
+    return;
     var relativePath = path.join('node_modules', '@jupyterlab', 'services', 'lib', 'kernel', 'default.js');
     var filePath = path.join(constants.ExtensionRootDir, relativePath);
     if (!fs.existsSync(filePath)) {

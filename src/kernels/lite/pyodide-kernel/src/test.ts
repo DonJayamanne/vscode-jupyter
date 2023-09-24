@@ -97,6 +97,22 @@ export function getSettings(): ServerConnection.ISettings {
             return new kernel.PyodideKernel({ ...options, ...pyodidOptions });
         }
     });
+    kernelspecs.register({
+        spec: {
+            name: 'sqlite',
+            display_name: 'SQLite',
+            language: 'sql',
+            argv: [],
+            resources: {
+                'logo-32x32': 'KERNEL_ICON_URL',
+                'logo-64x64': 'KERNEL_ICON_URL'
+            }
+        },
+        create: async (options: IKernel.IOptions): Promise<IKernel> => {
+            // return kernels.startNew(options) as any;
+            return new kernel.PyodideKernel({ ...options, ...pyodidOptions });
+        }
+    });
     const baseUrl = 'http://localhost:8015/';
     const wsUrl = 'ws://DUMMY:8015/';
     let kernelModel: ReadWrite<Kernel.IModel> = {
@@ -141,20 +157,39 @@ export function getSettings(): ServerConnection.ISettings {
             return {
                 status: 200,
                 json: () =>
-                    Promise.resolve([
-                        <ISpecModels>{
-                            default: 'pyodide',
-                            kernelspecs: {
-                                pyodide: {
+                    Promise.resolve(<ISpecModels>{
+                        default: 'pyodide',
+                        kernelspecs: {
+                            pyodide: {
+                                argv: [],
+                                display_name: 'pyodide',
+                                language: 'python',
+                                name: 'pyodide',
+                                resources: {},
+                                spec: {
                                     argv: [],
                                     display_name: 'pyodide',
                                     language: 'python',
                                     name: 'pyodide',
                                     resources: {}
                                 }
+                            },
+                            sqlite: {
+                                argv: [],
+                                display_name: 'SQLite',
+                                language: 'sql',
+                                name: 'sqlite',
+                                resources: {},
+                                spec: {
+                                    argv: [],
+                                    display_name: 'SQLite',
+                                    language: 'sql',
+                                    name: 'sqlite',
+                                    resources: {}
+                                }
                             }
                         }
-                    ])
+                    })
             };
         }
         if (url.startsWith(`${baseUrl}${KERNEL_SERVICE_URL}`)) {
