@@ -139,6 +139,18 @@ jobs:
               repo: context.repo.repo,
               assignees: ['DonJayamanne']
             })
+      - name: Wednesday (Don2)
+        if: steps.proceed.outputs.result == 1 && (steps.day.outputs.number == 3 && steps.hour.outputs.hour < 16)
+        uses: actions/github-script@v6.4.1
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.addAssignees({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              assignees: ['DonJayamanne']
+            })
       - name: Thursday (Peng)
         if: steps.proceed.outputs.result == 1 && ((steps.day.outputs.number == 3 && steps.hour.outputs.hour >= 16) || (steps.day.outputs.number == 4 && steps.hour.outputs.hour < 16))
         uses: actions/github-script@v6.4.1
