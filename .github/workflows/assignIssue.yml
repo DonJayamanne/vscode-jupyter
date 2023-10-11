@@ -64,7 +64,7 @@ jobs:
         if: steps.proceed.outputs.result == 1
         id: hour
         run: |
-          echo 'hour=$(node -p -e "(new Date().getUTCHours() - 7)%24")' >> $GITHUB_OUTPUT
+          echo 'hour=$(node -p -e "new Date().getUTCHours()%24")' >> $GITHUB_OUTPUT
         shell: bash
       - name: Week Number
         if: steps.proceed.outputs.result == 1
