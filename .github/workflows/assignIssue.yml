@@ -12,9 +12,12 @@ jobs:
   assignIssue:
     name: Assign Issue to Someone
     runs-on: ubuntu-latest
-    if: github.repository == 'microsoft/vscode-jupyter'
     steps:
       - uses: actions/checkout@v4
+      - name: DUMP
+        env:
+            GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
       - name: Created internally
         id: internal
         env:
