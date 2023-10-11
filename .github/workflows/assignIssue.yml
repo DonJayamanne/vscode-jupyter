@@ -23,7 +23,12 @@ jobs:
         env:
             ISSUE_OWNER: ${{github.event.issue.user.login}}
         run: |
-          echo result=$(node -p -e "['amunger', 'DonJayamanne', 'minsa110', 'rebornix', 'roblourens', 'kieferrm'].filter(item => process.env.ISSUE_OWNER.toLowerCase() === item.toLowerCase()).length > 0 ? 1 : 0") >> $GITHUB_OUTPUT
+          echo result=$(node -p -e "['amunger', 'minsa110', 'rebornix', 'roblourens', 'kieferrm'].filter(item => process.env.ISSUE_OWNER.toLowerCase() === item.toLowerCase()).length > 0 ? 1 : 0") >> $GITHUB_OUTPUT
+      - name: Created internally
+        id: internal
+        env:
+            ISSUE_OWNER: ${{github.event.issue.user.login}}
+        run: node -p -e "['amunger', 'minsa110', 'rebornix', 'roblourens', 'kieferrm'].filter(item => process.env.ISSUE_OWNER.toLowerCase() === item.toLowerCase()).length > 0 ? 1 : 0
         shell: bash
       - name: Should we proceed
         id: proceed
