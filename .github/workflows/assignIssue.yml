@@ -30,6 +30,12 @@ jobs:
     #         ISSUE_OWNER: ${{github.event.issue.user.login}}
     #     run: node -p -e "['amunger', 'minsa110', 'rebornix', 'roblourens', 'kieferrm'].filter(item => process.env.ISSUE_OWNER.toLowerCase() === item.toLowerCase()).length > 0 ? 1 : 0
     #     shell: bash
+      - name: DUMP
+        env:
+            ISSUE_LABELS: ${{toJson(github.event.issue.labels)}}
+            ISSUE_ASSIGNEES: ${{toJson(github.event.issue.assignees)}}
+            ISSUE_IS_INTERNAL: ${{steps.internal.outputs.result}}
+        run: echo "$ISSUE_IS_INTERNAL && $ISSUE_ASSIGNEES && $ISSUE_LABELS"
       - name: Should we proceed
         id: proceed
         env:
