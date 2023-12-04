@@ -29,3 +29,12 @@ export const UserJupyterServerPickerProviderId = '_builtin.jupyterServerUrlProvi
 export function isBuiltInJupyterProvider(id: string) {
     return id === TestingKernelPickerProviderId || id === UserJupyterServerPickerProviderId;
 }
+
+let isWebExtensionValue = false;
+export function setIsWebExtension(value: boolean) {
+    isWebExtensionValue = value;
+}
+
+export function isWebExtension() {
+    return isWebExtensionValue;
+}

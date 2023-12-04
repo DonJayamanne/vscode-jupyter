@@ -9,7 +9,6 @@ import { ISystemVariables } from './variables/types';
 
 export const IsCodeSpace = Symbol('IsCodeSpace');
 export const IsDevMode = Symbol('IsDevMode');
-export const IsWebExtension = Symbol('IsWebExtension');
 export const IOutputChannel = Symbol('IOutputChannel');
 export interface IOutputChannel extends OutputChannel {}
 export const IsWindows = Symbol('IS_WINDOWS');
