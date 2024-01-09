@@ -147,7 +147,17 @@ export class JupyterConnection {
                 return;
             }
             const servers = await Promise.resolve(collection.serverProvider.provideJupyterServers(token.token));
-            const server = servers?.find((c) => c.id === provider.handle);
+            let server: JupyterServer | null | undefined = servers?.find((c) => c.id === provider.handle);
+            if (!server && servers?.length === 0) {
+                try {
+                    server = await collection.serverProvider.resolveJupyterServer(
+                        { id: provider.handle, label: '' },
+                        token.token
+                    );
+                } catch {
+                    //
+                }
+            }
             if (!server) {
                 return;
             }
