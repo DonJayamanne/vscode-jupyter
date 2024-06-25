@@ -58,7 +58,7 @@ export abstract class BaseJupyterSessionConnection<
      * The kernel anyMessage signal, proxied from the current kernel.
      */
     anyMessage = new Signal<this, Kernel.IAnyMessageArgs>(this);
-
+    pendingInput = new Signal<this, boolean>(this);
     constructor(
         public readonly kind: T,
         protected readonly session: S

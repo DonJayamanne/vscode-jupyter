@@ -80,7 +80,8 @@ export class IPyWidgetMessageDispatcher implements IIPyWidgetMessageDispatcher {
     private outputWidgetIds = new Set<string>();
     private fullHandleMessage?: { id: string; promise: Deferred<void> };
     private isUsingIPyWidgets = false;
-    private readonly deserialize: (data: string | ArrayBuffer) => KernelMessage.IMessage<KernelMessage.MessageType>;
+    // private readonly deserialize: (data: string | ArrayBuffer) => KernelMessage.IMessage<KernelMessage.MessageType>;
+    private readonly deserialize: (data: ArrayBuffer) => KernelMessage.IMessage<KernelMessage.MessageType>;
 
     constructor(
         private readonly kernelProvider: IKernelProvider,
@@ -269,7 +270,10 @@ export class IPyWidgetMessageDispatcher implements IIPyWidgetMessageDispatcher {
         // we get the kernel in the UI to have the same set of futures we have on this side
         if (typeof data === 'string' && data.includes('shell') && data.includes('execute_request')) {
             // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const msg = this.deserialize(data) as KernelMessage.IExecuteRequestMsg;
+            const msg =
+                typeof data === 'string'
+                    ? JSON.parse(data)
+                    : (this.deserialize(data) as KernelMessage.IExecuteRequestMsg);
             if (msg.channel === 'shell' && msg.header.msg_type === 'execute_request') {
                 if (!shouldMessageBeMirroredWithRenderer(msg)) {
                     return;

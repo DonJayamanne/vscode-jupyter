@@ -18,8 +18,8 @@ import {
     IInfoReplyMsg
 } from '@jupyterlab/services/lib/kernel/messages';
 
-function deserialize(msg: string | ArrayBuffer): KernelMessage.IMessage {
-    return typeof msg === 'string' || msg instanceof ArrayBuffer ? jupyterLabSerialize.deserialize(msg) : msg;
+function deserialize(msg: ArrayBuffer): KernelMessage.IMessage {
+    return msg instanceof ArrayBuffer ? jupyterLabSerialize.deserialize(msg) : msg;
 }
 function serialize(msg: KernelMessage.IMessage): string | ArrayBuffer {
     return jupyterLabSerialize.serialize(msg);
@@ -87,7 +87,7 @@ export function createKernelConnection(requestCreator: JupyterRequestCreator): {
         }
         public onSend = this._onSend.event;
         public send(msg: string) {
-            this._onSend.fire(deserialize(msg));
+            this._onSend.fire(typeof msg === 'string' ? JSON.parse(msg) : deserialize(msg));
         }
         public emitOnMessage(msg: KernelMessage.IMessage) {
             if (this.onmessage) {
@@ -114,7 +114,8 @@ export function createKernelConnection(requestCreator: JupyterRequestCreator): {
             Headers: requestCreator.getHeadersCtor(),
             Request: requestCreator.getRequestCtor(),
             token: '',
-            wsUrl: ''
+            wsUrl: '',
+            serializer: {} as any
         }
     });
 

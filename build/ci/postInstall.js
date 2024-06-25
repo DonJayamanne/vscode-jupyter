@@ -256,7 +256,7 @@ function commentOutInvalidExport() {
 
 fixJupyterLabRenderers();
 makeVariableExplorerAlwaysSorted();
-createJupyterKernelWithoutSerialization();
+// createJupyterKernelWithoutSerialization();
 fixVariableNameInKernelDefaultJs();
 removeUnnecessaryLoggingFromKernelDefault();
 updateJSDomTypeDefinition();

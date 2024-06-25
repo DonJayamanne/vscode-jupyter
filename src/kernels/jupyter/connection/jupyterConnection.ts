@@ -19,6 +19,10 @@ import { IConfigurationService, ReadWrite } from '../../../platform/common/types
 import { RemoteJupyterServerConnectionError } from '../../../platform/errors/remoteJupyterServerConnectionError';
 import { CancellationTokenSource, Uri } from 'vscode';
 import { JupyterLabHelper } from '../session/jupyterLabHelper';
+import { getSettings } from '../../lite/pyodide-kernel/src/test';
+import { JVSC_EXTENSION_ID } from '../../../platform/common/constants';
+import { noop } from '../../../platform/common/utils/misc';
+import type { IJupyterConnection } from '../../types';
 
 /**
  * Creates IJupyterConnection objects for URIs and 3rd party handles/ids.
@@ -38,7 +42,24 @@ export class JupyterConnection {
         private readonly requestCreator: IJupyterRequestCreator
     ) {}
 
-    public async createConnectionInfo(serverId: JupyterServerProviderHandle) {
+    public async createConnectionInfo(serverId: JupyterServerProviderHandle): Promise<IJupyterConnection> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (serverId as any) {
+            const settings = getSettings();
+            return {
+                baseUrl: settings.baseUrl,
+                displayName: '',
+                // localLaunch: false,
+                hostName: '',
+                providerId: '_builtin_server',
+                token: '',
+                rootDirectory: Uri.file(''),
+                serverProviderHandle: { extensionId: JVSC_EXTENSION_ID, id: '_builtin_server', handle: '1' },
+                dispose: noop,
+                settings: settings
+            };
+        }
+
         const server = await this.getJupyterServerUri(serverId);
         if (!server) {
             throw new Error(

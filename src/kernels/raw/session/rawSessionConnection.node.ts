@@ -36,6 +36,7 @@ export class RawSessionConnection implements Session.ISessionConnection {
     public readonly disposed = new Signal<this, void>(this);
     public readonly connectionStatusChanged = new Signal<this, Kernel.ConnectionStatus>(this);
     public readonly propertyChanged = new Signal<this, 'path' | 'name' | 'type'>(this);
+    public readonly pendingInput = new Signal<this, boolean>(this);
     private _didShutDownOnce = false;
     private _isDisposing?: boolean;
 

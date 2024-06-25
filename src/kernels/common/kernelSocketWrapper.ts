@@ -8,7 +8,7 @@ import { logger } from '../../platform/logging';
 import { IKernelSocket } from '../types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export type IWebSocketLike = {
+export interface IWebSocketLike {
     onopen: ((this: any, event: any) => void) | null;
     onerror: ((this: any, event: any) => void) | null;
     onclose: ((this: any, event: any) => void) | null;
@@ -16,7 +16,7 @@ export type IWebSocketLike = {
     emit(event: string | symbol, ...args: any[]): boolean;
     send(data: any, a2: any): void;
     close(): void;
-};
+}
 
 /**
  * This is called a mixin class in TypeScript.
