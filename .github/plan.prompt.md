@@ -24,8 +24,7 @@ Note:
 - Do not blindly overwrite the file, patch/merge the file with the new information.
 
 <reminder>
-DO NOT make any code changes at this time
-just provide a detailed report.
+DO NOT make any code changes at this time, just provide a detailed report.
 </reminder>
 
 
